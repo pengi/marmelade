@@ -28,11 +28,9 @@ impl fmt::Debug for HfsVolBitmap {
 
 pub fn readvec(f : &mut FileAccess, len : usize) -> io::Result<Vec<u8>> {
     let mut bufv : Vec<u8> = Vec::with_capacity(len);
-    let mut bufa = [0u8; 1];
 
     for _i in 0..len {
-        f.read_exact(&mut bufa)?;
-        bufv.push(bufa[0]);
+        bufv.push(f.read_u8()?);
     }
 
     Ok(bufv)

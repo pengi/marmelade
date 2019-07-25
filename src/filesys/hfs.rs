@@ -48,10 +48,8 @@ impl<'storage> HfsImage<'storage>
     }
 
     fn get_alloc_block(&self, blocknum : u16) -> io::Result<Vec<u8>> {
-        let mut block = [0u8; 512];
         let mut f = self.storage.borrow_mut();
         f.seek(blocknum as u64 * self.mdb.drAlBlkSiz as u64 + self.start_of_alloc)?;
-        f.read_exact(&mut block)?;
-        Ok(block.to_vec())
+        Ok(f.read_vec(self.mdb.drAlBlkSiz as usize)?)
     }
 }

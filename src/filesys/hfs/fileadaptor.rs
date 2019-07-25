@@ -13,7 +13,7 @@ pub trait FileAccess : std::fmt::Debug {
     fn read_u16(&mut self) -> io::Result<u16>;
     fn read_i32(&mut self) -> io::Result<i32>;
     fn read_u32(&mut self) -> io::Result<u32>;
-    fn read_exact(&mut self, buf : &mut [u8]) -> io::Result<()>;
+    fn read_vec(&mut self, len : usize) -> io::Result<Vec<u8>>;
 }
 
 impl<'storage, T> FileAdaptor<'storage, T>
@@ -51,7 +51,11 @@ T: io::Read + io::Seek + std::fmt::Debug {
     fn read_u32(&mut self) -> io::Result<u32> {
         self.0.read_u32::<BigEndian>()
     }
-    fn read_exact(&mut self, buf : &mut [u8]) -> io::Result<()> {
-        self.0.read_exact(buf)
+    fn read_vec(&mut self, len : usize) -> io::Result<Vec<u8>> {
+        let mut bufv : Vec<u8> = Vec::with_capacity(len);
+        for _ in 0..len {
+            bufv.push(self.read_u8()?);
+        }
+        Ok(bufv)
     }
 }

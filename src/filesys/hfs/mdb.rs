@@ -52,11 +52,7 @@ pub fn readstr(f : &mut FileAccess, len : usize) -> io::Result<String> {
     // input len is the number of bytes, excluding length prefix. Include length
     let len = len + 1;
 
-    let mut bufv : Vec<u8> = Vec::with_capacity(len);
-
-    for _i in 0..len {
-        bufv.push(f.read_u8()?);
-    }
+    let bufv = f.read_vec(len)?;
 
     let name = &bufv[1..(1+bufv[0] as usize)];
     let name = String::from_utf8_lossy(name);
