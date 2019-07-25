@@ -6,6 +6,7 @@ use std::io;
 use std::cell::RefCell;
 
 use mdb::HfsMDB;
+use mdb::ExtDataRec;
 use volbitmap::HfsVolBitmap;
 use fileadaptor::FileAccess;
 
@@ -40,16 +41,22 @@ impl<'storage> HfsImage<'storage>
             size
             };
 
-        println!("drXTExt: {:#?}", img.get_alloc_block(img.mdb.drXTExtRec.0[0].xdrStABN)?);
-        println!("drCTExt: {:#?}", img.get_alloc_block(img.mdb.drCTExtRec.0[0].xdrStABN)?);
+        println!("drXTExt: {:#?}", img.read_ext_rec(&img.mdb.drXTExtRec, 0, 64)?);
+        println!("drCTExt: {:#?}", img.read_ext_rec(&img.mdb.drCTExtRec, 0, 64)?);
 
 
         Ok(img)
     }
 
-    fn get_alloc_block(&self, blocknum : u16) -> io::Result<Vec<u8>> {
+    fn read_ext_rec(&self, rec: &ExtDataRec, start : u64, len : usize) -> io::Result<Vec<u8>> {
         let mut f = self.storage.borrow_mut();
-        f.seek(blocknum as u64 * self.mdb.drAlBlkSiz as u64 + self.start_of_alloc)?;
-        Ok(f.read_vec(self.mdb.drAlBlkSiz as usize)?)
+        let range = &rec.0[0];
+        let offset : u64 = self.start_of_alloc + range.xdrStABN as u64 * self.mdb.drAlBlkSiz as u64 + start;
+        let range_len : usize = range.xdrNumABlks as usize *  self.mdb.drAlBlkSiz as usize;
+        if range_len < start as usize + len {
+            return Err(io::Error::new(io::ErrorKind::Other, "Record read out of range"));
+        }
+        f.seek(offset)?;
+        Ok(f.read_vec(len)?)
     }
 }
