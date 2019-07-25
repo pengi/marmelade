@@ -1,38 +1,35 @@
 mod mdb;
 mod volbitmap;
+pub mod fileadaptor;
 
 use std::io;
-use std::io::SeekFrom;
 use std::cell::RefCell;
 
 use mdb::HfsMDB;
 use volbitmap::HfsVolBitmap;
+use fileadaptor::FileAccess;
 
 #[derive(Debug)]
-pub struct HfsImage<'storage, T>
-where
-    T: io::Read + io::Seek,
+pub struct HfsImage<'storage>
 {
-    storage: RefCell<&'storage mut T>,
+    storage: RefCell<&'storage mut dyn FileAccess>,
     mdb: HfsMDB,
     bitmap: HfsVolBitmap,
     start_of_alloc: u64,
     size: u64,
 }
 
-impl<'storage, T> HfsImage<'storage, T>
-where
-    T: io::Read + io::Seek,
+impl<'storage> HfsImage<'storage>
 {
-    pub fn from(storage: &'storage mut T) -> io::Result<HfsImage<T>> {
-        let size = storage.seek(SeekFrom::End(0))?;
+    pub fn from(storage: &mut dyn FileAccess) -> io::Result<HfsImage> {
+        let size = storage.size()?;
 
-        storage.seek(SeekFrom::Start(512*2))?;
+        storage.seek(512*2)?;
         let mdb = HfsMDB::from(storage)?;
 
-        storage.seek(SeekFrom::Start(512*(mdb.drVBMSt as u64)))?;
+        storage.seek(512*(mdb.drVBMSt as u64))?;
         let bitmap = HfsVolBitmap::from(storage, mdb.drNmAlBlks)?;
-        let start_of_alloc = storage.seek(SeekFrom::Current(0))?;
+        let start_of_alloc = storage.pos()?;
 
 
         let img = HfsImage {
@@ -53,7 +50,7 @@ where
     fn get_alloc_block(&self, blocknum : u16) -> io::Result<Vec<u8>> {
         let mut block = [0u8; 512];
         let mut f = self.storage.borrow_mut();
-        f.seek(SeekFrom::Start(blocknum as u64 * self.mdb.drAlBlkSiz as u64 + self.start_of_alloc))?;
+        f.seek(blocknum as u64 * self.mdb.drAlBlkSiz as u64 + self.start_of_alloc)?;
         f.read_exact(&mut block)?;
         Ok(block.to_vec())
     }

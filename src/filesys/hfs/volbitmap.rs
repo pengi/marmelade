@@ -1,5 +1,6 @@
 use std::io;
 use std::fmt;
+use super::fileadaptor::FileAccess;
 
 pub struct HfsVolBitmap (Vec<u8>);
 
@@ -25,7 +26,7 @@ impl fmt::Debug for HfsVolBitmap {
     }
 }
 
-pub fn readvec(f : &mut io::Read, len : usize) -> io::Result<Vec<u8>> {
+pub fn readvec(f : &mut FileAccess, len : usize) -> io::Result<Vec<u8>> {
     let mut bufv : Vec<u8> = Vec::with_capacity(len);
     let mut bufa = [0u8; 1];
 
@@ -38,7 +39,7 @@ pub fn readvec(f : &mut io::Read, len : usize) -> io::Result<Vec<u8>> {
 }
 
 impl HfsVolBitmap {
-    pub fn from(file: &mut io::Read, num_blocks: u16) -> io::Result<HfsVolBitmap> {
+    pub fn from(file: &mut FileAccess, num_blocks: u16) -> io::Result<HfsVolBitmap> {
         let bits_per_block = 512*8;
         let num_vbm_blocks = (num_blocks + bits_per_block - 1) / bits_per_block;
         let num_bytes = (num_vbm_blocks as usize) * 512;

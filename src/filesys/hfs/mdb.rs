@@ -1,5 +1,5 @@
 use std::io;
-use byteorder::{BigEndian, ReadBytesExt};
+use super::fileadaptor::FileAccess;
 
 #[derive(Debug)]
 #[allow(non_snake_case)] // This struct comes from old Mac structs
@@ -48,7 +48,7 @@ pub struct HfsMDB {
     pub drCTExtRec: ExtDataRec, //ExtDataRec, // extent record for catalog file
 }
 
-pub fn readstr(f : &mut io::Read, len : usize) -> io::Result<String> {
+pub fn readstr(f : &mut FileAccess, len : usize) -> io::Result<String> {
     // input len is the number of bytes, excluding length prefix. Include length
     let len = len + 1;
 
@@ -67,15 +67,15 @@ pub fn readstr(f : &mut io::Read, len : usize) -> io::Result<String> {
 
 impl ExtDescriptor {
     #[allow(non_snake_case)] // This struct comes from old Mac structs
-    fn from(file: &mut io::Read) -> io::Result<ExtDescriptor> {
-        let xdrStABN = file.read_u16::<BigEndian>()?;
-        let xdrNumABlks = file.read_i16::<BigEndian>()?;
+    fn from(file: &mut FileAccess) -> io::Result<ExtDescriptor> {
+        let xdrStABN = file.read_u16()?;
+        let xdrNumABlks = file.read_i16()?;
         Ok(ExtDescriptor{xdrStABN,xdrNumABlks})
     }
 }
 
 impl ExtDataRec {
-    fn from(file: &mut io::Read) -> io::Result<ExtDataRec> {
+    fn from(file: &mut FileAccess) -> io::Result<ExtDataRec> {
         Ok(ExtDataRec([
             ExtDescriptor::from(file)?,
             ExtDescriptor::from(file)?,
@@ -86,39 +86,39 @@ impl ExtDataRec {
 
 impl HfsMDB {
     #[allow(non_snake_case)] // This struct comes from old Mac structs
-    pub fn from(file: &mut io::Read) -> io::Result<HfsMDB> {
-        let drSigWord = file.read_i16::<BigEndian>()?;
-        let drCrDate = file.read_i32::<BigEndian>()?;
-        let drLsMod = file.read_i32::<BigEndian>()?;
-        let drAtrb = file.read_i16::<BigEndian>()?;
-        let drNmFls = file.read_i16::<BigEndian>()?;
-        let drVBMSt = file.read_i16::<BigEndian>()?;
-        let drAllocPtr = file.read_i16::<BigEndian>()?;
-        let drNmAlBlks = file.read_u16::<BigEndian>()?;
-        let drAlBlkSiz = file.read_i32::<BigEndian>()?;
-        let drClpSiz = file.read_i32::<BigEndian>()?;
-        let drAlBlSt = file.read_i16::<BigEndian>()?;
-        let drNxtCNID = file.read_i32::<BigEndian>()?;
-        let drFreeBks = file.read_u16::<BigEndian>()?;
+    pub fn from(file: &mut FileAccess) -> io::Result<HfsMDB> {
+        let drSigWord = file.read_i16()?;
+        let drCrDate = file.read_i32()?;
+        let drLsMod = file.read_i32()?;
+        let drAtrb = file.read_i16()?;
+        let drNmFls = file.read_i16()?;
+        let drVBMSt = file.read_i16()?;
+        let drAllocPtr = file.read_i16()?;
+        let drNmAlBlks = file.read_u16()?;
+        let drAlBlkSiz = file.read_i32()?;
+        let drClpSiz = file.read_i32()?;
+        let drAlBlSt = file.read_i16()?;
+        let drNxtCNID = file.read_i32()?;
+        let drFreeBks = file.read_u16()?;
         let drVN = readstr(file, 27)?;
-        let drVolBkUp = file.read_i32::<BigEndian>()?;
-        let drVSeqNum = file.read_i16::<BigEndian>()?;
-        let drWrCnt = file.read_i32::<BigEndian>()?;
-        let drXTClpSiz = file.read_i32::<BigEndian>()?;
-        let drCTClpSiz = file.read_i32::<BigEndian>()?;
-        let drNmRtDirs = file.read_i16::<BigEndian>()?;
-        let drFilCnt = file.read_i32::<BigEndian>()?;
-        let drDirCnt = file.read_i32::<BigEndian>()?;
+        let drVolBkUp = file.read_i32()?;
+        let drVSeqNum = file.read_i16()?;
+        let drWrCnt = file.read_i32()?;
+        let drXTClpSiz = file.read_i32()?;
+        let drCTClpSiz = file.read_i32()?;
+        let drNmRtDirs = file.read_i16()?;
+        let drFilCnt = file.read_i32()?;
+        let drDirCnt = file.read_i32()?;
         let mut drFndrInfo: [i32; 8] = [0; 8];
         for el in &mut drFndrInfo {
-            *el = file.read_i32::<BigEndian>()?;
+            *el = file.read_i32()?;
         }
-        let drVCSize = file.read_i16::<BigEndian>()?;
-        let drVBMCSize = file.read_i16::<BigEndian>()?;
-        let drCtlCSize = file.read_i16::<BigEndian>()?;
-        let drXTFlSize = file.read_i32::<BigEndian>()?;
+        let drVCSize = file.read_i16()?;
+        let drVBMCSize = file.read_i16()?;
+        let drCtlCSize = file.read_i16()?;
+        let drXTFlSize = file.read_i32()?;
         let drXTExtRec = ExtDataRec::from(file)?;
-        let drCTFlSize = file.read_i32::<BigEndian>()?;
+        let drCTFlSize = file.read_i32()?;
         let drCTExtRec = ExtDataRec::from(file)?;
 
         if drSigWord != 0x4244 {
