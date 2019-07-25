@@ -57,7 +57,7 @@ pub fn readstr(f : &mut FileAccess, len : usize) -> io::Result<String> {
     let name = &bufv[1..(1+bufv[0] as usize)];
     let name = String::from_utf8_lossy(name);
     let name = String::from(name);
-    println!("Buf: {:?}", &name);
+    
     Ok(name)
 }
 

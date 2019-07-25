@@ -1,14 +1,17 @@
 mod mdb;
 mod volbitmap;
+mod btree;
 pub mod fileadaptor;
 
 use std::io;
 use std::cell::RefCell;
 
+use fileadaptor::FileAccess;
+
 use mdb::HfsMDB;
 use mdb::ExtDataRec;
 use volbitmap::HfsVolBitmap;
-use fileadaptor::FileAccess;
+use btree::BTreeIter;
 
 #[derive(Debug)]
 pub struct HfsImage<'storage>
@@ -32,20 +35,18 @@ impl<'storage> HfsImage<'storage>
         let bitmap = HfsVolBitmap::from(storage, mdb.drNmAlBlks)?;
         let start_of_alloc = storage.pos()?;
 
-
-        let img = HfsImage {
+        Ok(HfsImage {
             storage: RefCell::new(storage),
             mdb,
             bitmap,
             start_of_alloc,
             size
-            };
+            })
+    }
 
-        println!("drXTExt: {:#?}", img.read_ext_rec(&img.mdb.drXTExtRec, 0, 64)?);
-        println!("drCTExt: {:#?}", img.read_ext_rec(&img.mdb.drCTExtRec, 0, 64)?);
-
-
-        Ok(img)
+    pub fn list_files(&self) -> io::Result<()> {
+        let _iter = BTreeIter::scan(self, &self.mdb.drCTExtRec)?;
+        Ok(())
     }
 
     fn read_ext_rec(&self, rec: &ExtDataRec, start : u64, len : usize) -> io::Result<Vec<u8>> {
