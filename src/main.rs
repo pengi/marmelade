@@ -3,7 +3,7 @@ use marmelade::filesys::hfs::fileadaptor::FileAdaptor;
 use std::fs;
 
 fn main() {
-    let mut file = fs::File::open("image.dmg").unwrap();
+    let mut file = fs::File::open("ref/refdisk.dmg").unwrap();
     let mut fa = FileAdaptor::new(&mut file);
     let fs = hfs::HfsImage::from(&mut fa).unwrap();
     println!("{:#?}", fs);
