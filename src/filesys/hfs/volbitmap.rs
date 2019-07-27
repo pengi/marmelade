@@ -1,68 +1,46 @@
-use std::io;
+use super::fileadaptor::FileBlock;
 use std::fmt;
-use super::fileadaptor::FileAccess;
 
-pub struct HfsVolBitmap (Vec<u8>);
+pub struct HfsVolBitmap(FileBlock);
 
 impl fmt::Debug for HfsVolBitmap {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut last = 0xff;
-        let mut count = 0;
-        write!(f, "HfsVolBitmap(")?;
-        for b in self.0.iter() {
-            if *b == last {
-                count += 1;
-            } else {
-                write!(f, "{}*{:02x}, ", count, last)?;
-                last = *b;
-                count = 1;
-            }
-        }
-        if count != 0 {
-            write!(f, "{}*{:02x}", count, last)?;
-        }
-        write!(f, ")")?;
+        write!(f, "HfsVolBitmap()")?;
         Ok(())
     }
 }
 
-pub fn readvec(f : &mut FileAccess, len : usize) -> io::Result<Vec<u8>> {
-    let mut bufv : Vec<u8> = Vec::with_capacity(len);
-
-    for _i in 0..len {
-        bufv.push(f.read_u8()?);
-    }
-
-    Ok(bufv)
-}
-
 impl HfsVolBitmap {
-    pub fn from(file: &mut FileAccess, num_blocks: u16) -> io::Result<HfsVolBitmap> {
-        let bits_per_block = 512*8;
-        let num_vbm_blocks = (num_blocks + bits_per_block - 1) / bits_per_block;
-        let num_bytes = (num_vbm_blocks as usize) * 512;
-        let data = readvec(file, num_bytes)?;
-        Ok(HfsVolBitmap(data))
+    pub fn from(block: FileBlock) -> HfsVolBitmap {
+        HfsVolBitmap(block)
     }
 
     pub fn page_used(&self, block_num: u16) -> bool {
         let byte_idx = (block_num / 8) as usize;
-        let bit_idx = 7-(block_num % 8);
+        let bit_idx = 7 - (block_num % 8);
 
-        if let Some(b) = self.0.get(byte_idx) {
-            *b & (1 << bit_idx) != 0
-        } else {
-            false
-        }
+        self.0.read_u8(byte_idx) & (1 << bit_idx) != 0
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use super::FileBlock;
     use super::HfsVolBitmap;
+
+    use super::super::fileadaptor::FileAdaptor;
+    use super::super::fileadaptor::FileAccess;
+
+    fn block_for_vec(vec : Vec<u8>) -> FileBlock {
+        let len = vec.len();
+        let mut io = std::io::Cursor::new(vec);
+        let mut fa = FileAdaptor::new(&mut io);
+        fa.read_vec(len).unwrap()
+    }
+
     #[test]
     fn page_used_bit_order() {
-        let bm = HfsVolBitmap ( vec![0xffu8, 0xf0u8, 0x00u8] );
+        let bm = HfsVolBitmap(block_for_vec(vec![0xffu8, 0xf0u8, 0x00u8]));
         assert_eq!(bm.page_used(0), true);
         assert_eq!(bm.page_used(7), true);
         assert_eq!(bm.page_used(8), true);

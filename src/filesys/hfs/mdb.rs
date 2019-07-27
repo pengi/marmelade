@@ -1,5 +1,6 @@
 use std::io;
-use super::fileadaptor::FileAccess;
+use super::fileadaptor::FileBlock;
+use super::fileadaptor::FileBlockSeqReader;
 
 #[derive(Debug)]
 #[allow(non_snake_case)] // This struct comes from old Mac structs
@@ -48,74 +49,68 @@ pub struct HfsMDB {
     pub drCTExtRec: ExtDataRec, //ExtDataRec, // extent record for catalog file
 }
 
-pub fn readstr(f : &mut FileAccess, len : usize) -> io::Result<String> {
-    // input len is the number of bytes, excluding length prefix. Include length
-    let len = len + 1;
-
-    let bufv = f.read_vec(len)?;
-
-    let name = &bufv[1..(1+bufv[0] as usize)];
-    let name = String::from_utf8_lossy(name);
-    let name = String::from(name);
-    
-    Ok(name)
-}
-
 impl ExtDescriptor {
     #[allow(non_snake_case)] // This struct comes from old Mac structs
-    fn from(file: &mut FileAccess) -> io::Result<ExtDescriptor> {
-        let xdrStABN = file.read_u16()?;
-        let xdrNumABlks = file.read_i16()?;
-        Ok(ExtDescriptor{xdrStABN,xdrNumABlks})
+    fn from(rdr: &mut FileBlockSeqReader) -> ExtDescriptor {
+        let xdrStABN = rdr.read_u16();
+        let xdrNumABlks = rdr.read_i16();
+        ExtDescriptor{xdrStABN,xdrNumABlks}
     }
 }
 
 impl ExtDataRec {
-    fn from(file: &mut FileAccess) -> io::Result<ExtDataRec> {
-        Ok(ExtDataRec([
-            ExtDescriptor::from(file)?,
-            ExtDescriptor::from(file)?,
-            ExtDescriptor::from(file)?,
-        ]))
+    fn from(rdr: &mut FileBlockSeqReader) -> ExtDataRec {
+        ExtDataRec([
+            ExtDescriptor::from(rdr),
+            ExtDescriptor::from(rdr),
+            ExtDescriptor::from(rdr),
+        ])
     }
 }
 
 impl HfsMDB {
     #[allow(non_snake_case)] // This struct comes from old Mac structs
-    pub fn from(file: &mut FileAccess) -> io::Result<HfsMDB> {
-        let drSigWord = file.read_i16()?;
-        let drCrDate = file.read_i32()?;
-        let drLsMod = file.read_i32()?;
-        let drAtrb = file.read_i16()?;
-        let drNmFls = file.read_i16()?;
-        let drVBMSt = file.read_i16()?;
-        let drAllocPtr = file.read_i16()?;
-        let drNmAlBlks = file.read_u16()?;
-        let drAlBlkSiz = file.read_i32()?;
-        let drClpSiz = file.read_i32()?;
-        let drAlBlSt = file.read_i16()?;
-        let drNxtCNID = file.read_i32()?;
-        let drFreeBks = file.read_u16()?;
-        let drVN = readstr(file, 27)?;
-        let drVolBkUp = file.read_i32()?;
-        let drVSeqNum = file.read_i16()?;
-        let drWrCnt = file.read_i32()?;
-        let drXTClpSiz = file.read_i32()?;
-        let drCTClpSiz = file.read_i32()?;
-        let drNmRtDirs = file.read_i16()?;
-        let drFilCnt = file.read_i32()?;
-        let drDirCnt = file.read_i32()?;
-        let mut drFndrInfo: [i32; 8] = [0; 8];
-        for el in &mut drFndrInfo {
-            *el = file.read_i32()?;
-        }
-        let drVCSize = file.read_i16()?;
-        let drVBMCSize = file.read_i16()?;
-        let drCtlCSize = file.read_i16()?;
-        let drXTFlSize = file.read_i32()?;
-        let drXTExtRec = ExtDataRec::from(file)?;
-        let drCTFlSize = file.read_i32()?;
-        let drCTExtRec = ExtDataRec::from(file)?;
+    pub fn from(block: &FileBlock) -> io::Result<HfsMDB> {
+        let mut rdr    = FileBlockSeqReader::from(block, 0);
+        let drSigWord  = rdr.read_i16();
+        let drCrDate   = rdr.read_i32();
+        let drLsMod    = rdr.read_i32();
+        let drAtrb     = rdr.read_i16();
+        let drNmFls    = rdr.read_i16();
+        let drVBMSt    = rdr.read_i16();
+        let drAllocPtr = rdr.read_i16();
+        let drNmAlBlks = rdr.read_u16();
+        let drAlBlkSiz = rdr.read_i32();
+        let drClpSiz   = rdr.read_i32();
+        let drAlBlSt   = rdr.read_i16();
+        let drNxtCNID  = rdr.read_i32();
+        let drFreeBks  = rdr.read_u16();
+        let drVN       = rdr.read_pstr(27);
+        let drVolBkUp  = rdr.read_i32();
+        let drVSeqNum  = rdr.read_i16();
+        let drWrCnt    = rdr.read_i32();
+        let drXTClpSiz = rdr.read_i32();
+        let drCTClpSiz = rdr.read_i32();
+        let drNmRtDirs = rdr.read_i16();
+        let drFilCnt   = rdr.read_i32();
+        let drDirCnt   = rdr.read_i32();
+        let drFndrInfo = [
+            rdr.read_i32(),
+            rdr.read_i32(),
+            rdr.read_i32(),
+            rdr.read_i32(),
+            rdr.read_i32(),
+            rdr.read_i32(),
+            rdr.read_i32(),
+            rdr.read_i32(),
+        ];
+        let drVCSize   = rdr.read_i16();
+        let drVBMCSize = rdr.read_i16();
+        let drCtlCSize = rdr.read_i16();
+        let drXTFlSize = rdr.read_i32();
+        let drXTExtRec = ExtDataRec::from(&mut rdr);
+        let drCTFlSize = rdr.read_i32();
+        let drCTExtRec = ExtDataRec::from(&mut rdr);
 
         if drSigWord != 0x4244 {
             return Err(io::Error::new(io::ErrorKind::Other, "Invalid drSigWord"));
