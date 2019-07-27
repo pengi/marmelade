@@ -1,7 +1,6 @@
 use std::io;
 use byteorder::{BigEndian, ReadBytesExt};
 
-#[derive(Debug)]
 pub struct FileBlock {
     data : Vec<u8>
 }
@@ -9,6 +8,9 @@ pub struct FileBlock {
 impl FileBlock {
     pub fn read_u8(&self, offset: usize) -> u8 {
         self.data[offset]
+    }
+    pub fn read_i8(&self, offset: usize) -> i8 {
+        self.data[offset] as i8
     }
     pub fn read_i16(&self, offset: usize) -> i16 {
         let mut f = io::Cursor::new(self.data.get(offset..offset+2).unwrap());
@@ -30,6 +32,13 @@ impl FileBlock {
         let actual_len = *self.data.get(offset).unwrap() as usize;
         let fetch_len = if len < actual_len { len } else { actual_len };
         String::from(String::from_utf8_lossy(self.data.get(offset+1..offset+fetch_len+1).unwrap()))
+    }
+}
+
+impl std::fmt::Debug for FileBlock {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "<FileBlock>")?;
+        Ok(())
     }
 }
 
@@ -91,6 +100,11 @@ impl<'storage> FileBlockSeqReader<'storage> {
 
     pub fn read_u8(&mut self) -> u8 {
         let res = self.block.read_u8(self.offset);
+        self.offset += 1;
+        res
+    }
+    pub fn read_i8(&mut self) -> i8 {
+        let res = self.block.read_i8(self.offset);
         self.offset += 1;
         res
     }

@@ -5,7 +5,7 @@ pub struct HfsVolBitmap(FileBlock);
 
 impl fmt::Debug for HfsVolBitmap {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "HfsVolBitmap()")?;
+        write!(f, "<HfsVolBitmap>")?;
         Ok(())
     }
 }

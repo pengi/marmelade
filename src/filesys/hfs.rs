@@ -12,7 +12,7 @@ use fileadaptor::FileBlock;
 use mdb::HfsMDB;
 use mdb::ExtDataRec;
 use volbitmap::HfsVolBitmap;
-use btree::BTreeIter;
+use btree::BTree;
 
 #[derive(Debug)]
 pub struct HfsImage<'storage>
@@ -52,14 +52,18 @@ impl<'storage> HfsImage<'storage>
     }
 
     pub fn list_files(&self) -> io::Result<()> {
-        let _iter = BTreeIter::scan(self, &self.mdb.drCTExtRec)?;
+        let iter = BTree::scan(self, &self.mdb.drCTExtRec);
+        println!("{:#?}", iter.read_block(0)?);
+        println!("{:#?}", iter.read_block(1)?);
+        println!("{:#?}", iter.read_block(2)?);
+        println!("{:#?}", iter.read_block(3)?);
         Ok(())
     }
 
-    fn read_ext_rec(&self, rec: &ExtDataRec, start : u64, len : usize) -> io::Result<FileBlock> {
+    fn read_ext_rec(&self, rec: &ExtDataRec, start : usize, len : usize) -> io::Result<FileBlock> {
         let mut f = self.storage.borrow_mut();
         let range = &rec.0[0];
-        let offset : u64 = self.start_of_alloc + range.xdrStABN as u64 * self.mdb.drAlBlkSiz as u64 + start;
+        let offset : u64 = self.start_of_alloc + range.xdrStABN as u64 * self.mdb.drAlBlkSiz as u64 + start as u64;
         let range_len : usize = range.xdrNumABlks as usize *  self.mdb.drAlBlkSiz as usize;
         if range_len < start as usize + len {
             return Err(io::Error::new(io::ErrorKind::Other, "Record read out of range"));
