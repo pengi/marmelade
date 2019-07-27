@@ -33,6 +33,9 @@ impl FileBlock {
         let fetch_len = if len < actual_len { len } else { actual_len };
         String::from(String::from_utf8_lossy(self.data.get(offset+1..offset+fetch_len+1).unwrap()))
     }
+    pub fn read_vec(&self, offset: usize, len: usize) -> Vec<u8> {
+        Vec::from(&self.data[offset..offset+len])
+    }
 }
 
 impl std::fmt::Debug for FileBlock {

@@ -12,7 +12,7 @@ use fileadaptor::FileBlock;
 use mdb::HfsMDB;
 use mdb::ExtDataRec;
 use volbitmap::HfsVolBitmap;
-use btree::BTree;
+use btree::{BTree, BTreeVecRecord};
 
 #[derive(Debug)]
 pub struct HfsImage<'storage>
@@ -52,11 +52,11 @@ impl<'storage> HfsImage<'storage>
     }
 
     pub fn list_files(&self) -> io::Result<()> {
-        let iter = BTree::scan(self, &self.mdb.drCTExtRec);
-        println!("{:#?}", iter.read_block(0)?);
-        println!("{:#?}", iter.read_block(1)?);
-        println!("{:#?}", iter.read_block(2)?);
-        println!("{:#?}", iter.read_block(3)?);
+        let iter = BTree::from(self, &self.mdb.drCTExtRec);
+        println!("{:#?}", iter.read_block::<BTreeVecRecord>(0)?);
+        println!("{:#?}", iter.read_block::<BTreeVecRecord>(1)?);
+        println!("{:#?}", iter.read_block::<BTreeVecRecord>(2)?);
+        println!("{:#?}", iter.read_block::<BTreeVecRecord>(3)?);
         Ok(())
     }
 
