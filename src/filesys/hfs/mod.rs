@@ -1,5 +1,6 @@
 mod types;
 mod blockaccess;
+mod btree;
 pub mod fileadaptor;
 
 use std::io;
@@ -12,8 +13,9 @@ use types::{
     };
 use blockaccess::BlockAccess;
 
-
-use types::btree::NodeDescriptor;
+use btree::{
+    BTreeHeaderNode
+};
 
 #[derive(Debug)]
 pub struct HfsImage<'storage>
@@ -36,8 +38,8 @@ impl<'storage> HfsImage<'storage>
         let storage = BlockAccess::new(storage, mdb.drAlBlSt as u64, mdb.drAlBlkSiz as u64);
 
         let mut hdrblock = storage.read_extdatarec(&mdb.drCTExtRec, 0, 512)?;
-        let nd = NodeDescriptor::read(&mut hdrblock);
-        println!("{:?}", nd);
+        let bt = BTreeHeaderNode::new(&mut hdrblock);
+        println!("{:#?}", bt);
 
         Ok(HfsImage {storage, mdb})
     }

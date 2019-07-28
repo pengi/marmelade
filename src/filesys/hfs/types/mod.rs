@@ -69,6 +69,10 @@ impl FileReader {
         self.block.seek(SeekFrom::Start(offset as u64)).unwrap();
     }
 
+    pub fn size(&self) -> u64 {
+        self.block.get_ref().len() as u64
+    }
+
     pub fn length_start(&mut self, len : u64) -> &mut Self {
         let cur_pos = self.block.seek(SeekFrom::Current(0)).unwrap();
         self.len_stack.push(cur_pos + len);
@@ -98,6 +102,11 @@ impl FileReader {
     }
     pub fn read_i32(&mut self) -> i32 {
         self.block.read_i32::<BigEndian>().unwrap()
+    }
+
+    pub fn sub_reader(&self, offset : u64, len : u64) -> FileReader {
+        let inner = self.block.get_ref();
+        FileReader::from(Vec::from(&inner[offset as usize..(offset+len) as usize]))
     }
 }
 
