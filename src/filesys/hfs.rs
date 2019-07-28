@@ -1,6 +1,7 @@
 mod mdb;
 mod volbitmap;
 mod btree;
+
 pub mod fileadaptor;
 
 use std::io;
@@ -55,7 +56,9 @@ impl<'storage> HfsImage<'storage>
         let xtbtree = BTree::from(self, &self.mdb.drXTExtRec)?;
         let ctbtree = BTree::from(self, &self.mdb.drCTExtRec)?;
         println!("{:#?}", xtbtree);
+        xtbtree.scan()?;
         println!("{:#?}", ctbtree);
+        ctbtree.scan()?;
         Ok(())
     }
 

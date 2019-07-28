@@ -1,6 +1,10 @@
+mod cdt;
+
 use super::mdb::ExtDataRec;
 use super::HfsImage;
 use std::io;
+
+use cdt::BTreeCDTRecord;
 
 use super::fileadaptor::{FileBlock, FileBlockSeqReader};
 
@@ -15,49 +19,85 @@ pub struct NodeDescriptor {
 }
 
 pub trait BTreeRecord {
-    fn new(block : &FileBlock, recno : i32, offset : usize, len : usize) -> Self;
+    fn new(
+        bth: &BTreeHeader,
+        nd: &NodeDescriptor,
+        block: &FileBlock,
+        recno: i32,
+        offset: usize,
+        len: usize,
+    ) -> Self;
 }
 
-
-
-
 pub struct BTreeVecRecord {
-    pub recno : i32,
-    pub data : Vec<u8>
+    pub recno: i32,
+    pub key_len: usize,
+    pub data: Vec<u8>,
 }
 
 impl BTreeRecord for BTreeVecRecord {
-    fn new(block : &FileBlock, recno : i32, offset : usize, len : usize) -> Self {
-        BTreeVecRecord{ recno, data: block.read_vec(offset, len) }
+    fn new(
+        bth: &BTreeHeader,
+        _nd: &NodeDescriptor,
+        block: &FileBlock,
+        recno: i32,
+        offset: usize,
+        len: usize,
+    ) -> Self {
+        BTreeVecRecord {
+            recno,
+            key_len: bth.bthKeyLen as usize,
+            data: block.read_vec(offset, len),
+        }
     }
 }
 
 impl std::fmt::Debug for BTreeVecRecord {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "<BTreeVecRecord recno={} len={}>", self.recno, self.data.len())?;
+        let data_len = self.data.len();
+        write!(
+            f,
+            "<BTreeVecRecord recno={} len={}.{} ",
+            self.recno,
+            self.key_len,
+            data_len - self.key_len
+        )?;
+        for b in &self.data[..self.key_len] {
+            write!(f, "{:02X}", b)?;
+        }
+        write!(f, " - ")?;
+        for b in &self.data[self.key_len..] {
+            write!(f, "{:02X}", b)?;
+        }
+        write!(f, ">")?;
         Ok(())
     }
 }
 
-
-
-#[derive(Debug)]
-#[derive(Clone)]
+#[derive(Debug, Clone, Default)]
 #[allow(non_snake_case)] // This struct comes from old Mac structs
 pub struct BTreeHeader {
-    bthDepth:    i16, //  Integer;    {current depth of tree}
-    bthRoot:     i32, //  LongInt;    {number of root node}
-    bthNRecs:    i32, //  LongInt;    {number of leaf records in tree}
-    bthFNode:    i32, //  LongInt;    {number of first leaf node}
-    bthLNode:    i32, //  LongInt;    {number of last leaf node}
+    bthDepth: i16,    //  Integer;    {current depth of tree}
+    bthRoot: i32,     //  LongInt;    {number of root node}
+    bthNRecs: i32,    //  LongInt;    {number of leaf records in tree}
+    bthFNode: i32,    //  LongInt;    {number of first leaf node}
+    bthLNode: i32,    //  LongInt;    {number of last leaf node}
     bthNodeSize: i16, //  Integer;    {size of a node}
-    bthKeyLen:   i16, //  Integer;    {maximum length of a key}
-    bthNNodes:   i32, //  LongInt;    {total number of nodes in tree}
-    bthFree:     i32, //  LongInt;    {number of free nodes}
+    bthKeyLen: i16,   //  Integer;    {maximum length of a key}
+    bthNNodes: i32,   //  LongInt;    {total number of nodes in tree}
+    bthFree: i32,     //  LongInt;    {number of free nodes}
 }
 
 impl BTreeRecord for Option<BTreeHeader> {
-    fn new(block : &FileBlock, recno : i32, offset : usize, _len : usize) -> Self {
+    fn new(
+        _: &BTreeHeader,
+        _nd: &NodeDescriptor,
+        block: &FileBlock,
+        recno: i32,
+        offset: usize,
+        _len: usize,
+    ) -> Self {
+        // When reading the header, the BTreeHeader argument is not valid
         if recno == 0 {
             let mut rdr = FileBlockSeqReader::from(&block, offset);
             Some(BTreeHeader {
@@ -78,10 +118,10 @@ impl BTreeRecord for Option<BTreeHeader> {
 }
 
 #[derive(Debug)]
-pub struct BTreeBlock<Rec : BTreeRecord> {
+pub struct BTreeBlock<Rec: BTreeRecord> {
     pub block: FileBlock,
     pub nd: NodeDescriptor,
-    pub recs : Vec<Rec>
+    pub recs: Vec<Rec>,
 }
 
 impl NodeDescriptor {
@@ -97,15 +137,22 @@ impl NodeDescriptor {
     }
 }
 
-impl<Rec : BTreeRecord> BTreeBlock<Rec> {
-    pub fn from(block: FileBlock) -> BTreeBlock<Rec> {
+impl<Rec: BTreeRecord> BTreeBlock<Rec> {
+    pub fn from(bth: &BTreeHeader, block: FileBlock) -> BTreeBlock<Rec> {
         let nd = NodeDescriptor::from(&block);
-        let mut recs : Vec<Rec> = Vec::with_capacity(nd.ndNRecs as usize);
+        let mut recs: Vec<Rec> = Vec::with_capacity(nd.ndNRecs as usize);
         for i in 0..nd.ndNRecs {
-            let idx_start = block.read_u16((512-2-i*2) as usize);
-            let idx_end = block.read_u16((512-2-i*2-2) as usize);
-            recs.push(Rec::new(&block, i.into(), idx_start.into(), (idx_end-idx_start).into()));
-        };
+            let idx_start = block.read_u16((512 - 2 - i * 2) as usize);
+            let idx_end = block.read_u16((512 - 2 - i * 2 - 2) as usize);
+            recs.push(Rec::new(
+                bth,
+                &nd,
+                &block,
+                i.into(),
+                idx_start.into(),
+                (idx_end - idx_start).into(),
+            ));
+        }
         BTreeBlock { block, nd, recs }
     }
 }
@@ -113,22 +160,41 @@ impl<Rec : BTreeRecord> BTreeBlock<Rec> {
 pub struct BTree<'iter, 'fs> {
     fs: &'iter HfsImage<'fs>,
     rec: &'iter ExtDataRec,
-    header: BTreeHeader
+    header: BTreeHeader,
 }
 
-fn read_block<'iter, 'fs, Rec : BTreeRecord>(fs: &'iter HfsImage<'fs>, rec: &'iter ExtDataRec, num: usize) -> io::Result<BTreeBlock<Rec>> {
-    Ok(BTreeBlock::from(fs.read_ext_rec(rec, num*512, 512)?))
+fn read_block<'iter, 'fs, Rec: BTreeRecord>(
+    bth: &BTreeHeader,
+    fs: &'iter HfsImage<'fs>,
+    rec: &'iter ExtDataRec,
+    num: usize,
+) -> io::Result<BTreeBlock<Rec>> {
+    Ok(BTreeBlock::from(bth, fs.read_ext_rec(rec, num * 512, 512)?))
 }
 
 impl<'iter, 'fs> BTree<'iter, 'fs> {
     pub fn from(fs: &'iter HfsImage<'fs>, rec: &'iter ExtDataRec) -> io::Result<BTree<'iter, 'fs>> {
-        let hdr_block = read_block::<Option<BTreeHeader>>(fs, rec, 0)?;
+        let tmp_bth = BTreeHeader::default();
+        let hdr_block = read_block::<Option<BTreeHeader>>(&tmp_bth, fs, rec, 0)?;
         let header = hdr_block.recs[0].clone();
         if let Some(header) = header {
-            Ok(BTree{fs, rec, header})
+            Ok(BTree { fs, rec, header })
         } else {
             Err(io::Error::new(io::ErrorKind::Other, "Unknown header"))
         }
+    }
+
+    pub fn scan(&self) -> io::Result<()> {
+        let mut cur_node = self.header.bthFNode;
+        while cur_node != 0 {
+            let block =
+                read_block::<BTreeCDTRecord>(&self.header, self.fs, self.rec, cur_node as usize)?;
+
+            println!("{:#?}", block);
+
+            cur_node = block.nd.ndFLink;
+        }
+        Ok(())
     }
 }
 
