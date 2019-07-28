@@ -104,3 +104,114 @@ impl std::fmt::Debug for FileReader {
         write!(f, "<FileReader>")
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{FileReader, FileReadable};
+
+    #[derive(FileReadable)]
+    #[derive(PartialEq)]
+    #[derive(Debug)]
+    struct TestStruct {
+        a : u8,
+        b : u16,
+        c : [u16; 2],
+    }
+
+
+
+    #[test]
+    fn read_struct() {
+        let mut rdr = FileReader::from(vec![1,2,3,4,5,6,7]);
+        let actual : TestStruct = FileReadable::read(&mut rdr);
+        assert_eq!(
+            actual,
+            TestStruct {
+                a : 0x01,
+                b : 0x0203,
+                c : [ 0x0405, 0x0607 ]
+            }
+        );
+    }
+
+    #[test]
+    fn read_seq() {
+        let mut rdr = FileReader::from(vec![1,2,3,4,5,6,7,2,2,3,4,5,6,7]);
+        
+        let actual : TestStruct = FileReadable::read(&mut rdr);
+        assert_eq!(
+            actual,
+            TestStruct {
+                a : 0x01,
+                b : 0x0203,
+                c : [ 0x0405, 0x0607 ]
+            }
+        );
+        
+        let actual : TestStruct = FileReadable::read(&mut rdr);
+        assert_eq!(
+            actual,
+            TestStruct {
+                a : 0x02,
+                b : 0x0203,
+                c : [ 0x0405, 0x0607 ]
+            }
+        );
+    }
+
+    #[derive(FileReadable)]
+    #[derive(PartialEq)]
+    #[derive(Debug)]
+    struct TestSuperStruct {
+        a : TestStruct,
+        b : TestStruct
+    }
+
+    #[test]
+    fn read_recursive() {
+        let mut rdr = FileReader::from(vec![1,2,3,4,5,6,7,2,2,3,4,5,6,7]);
+        
+        let actual : TestSuperStruct = FileReadable::read(&mut rdr);
+        assert_eq!(
+            actual,
+            TestSuperStruct {
+                a: TestStruct {
+                    a : 0x01,
+                    b : 0x0203,
+                    c : [ 0x0405, 0x0607 ]
+                },
+                b: TestStruct {
+                    a : 0x02,
+                    b : 0x0203,
+                    c : [ 0x0405, 0x0607 ]
+                }
+            }
+        );
+    }
+
+
+    #[derive(FileReadable)]
+    #[derive(PartialEq)]
+    #[derive(Debug)]
+    struct TestSized {
+        a : u8,
+        #[length_start(3)]
+        b : u8,
+        #[length_end()]
+        c : u8
+    }
+
+    #[test]
+    fn read_sized() {
+        let mut rdr = FileReader::from(vec![1,2,3,4,5]);
+        let actual : TestSized = FileReadable::read(&mut rdr);
+        assert_eq!(
+            actual,
+            TestSized {
+                a : 1,
+                b : 2,
+                c : 5
+            }
+        );
+    }
+}
