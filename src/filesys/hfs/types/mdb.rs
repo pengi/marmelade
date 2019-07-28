@@ -1,8 +1,4 @@
-use super::super::block::{
-    FileReader
-};
-
-use super::FileReadable;
+use super::{FileReader, FileReadable};
 use super::common::{
     PString,
     DateTime,

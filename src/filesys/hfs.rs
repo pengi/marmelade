@@ -1,13 +1,11 @@
 mod types;
-mod block;
 pub mod fileadaptor;
 
 use std::io;
 use std::cell::RefCell;
 
 use fileadaptor::FileAccess;
-use block::FileReader;
-use types::FileReadable;
+use types::{FileReader, FileReadable};
 
 #[derive(Debug)]
 pub struct HfsImage<'storage>

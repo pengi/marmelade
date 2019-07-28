@@ -1,5 +1,4 @@
-use super::super::block::FileReader;
-use super::FileReadable;
+use super::{FileReader, FileReadable};
 
 #[derive(Debug)]
 #[derive(FileReadable)]
