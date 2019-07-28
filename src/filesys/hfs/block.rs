@@ -6,35 +6,19 @@ use std::io::{
     SeekFrom
 };
 
-pub struct FileBlock {
-    data : Vec<u8>
-}
-
-impl std::fmt::Debug for FileBlock {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "<FileBlock>")
-    }
-}
-
-impl FileBlock {
-    pub fn from(vec : Vec<u8>) -> FileBlock {
-        FileBlock {data:vec}
-    }
-
-    pub fn to_reader(self) -> FileReader {
-        FileReader {
-            block: Cursor::new(self.data),
-            len_stack: vec![]
-        }
-    }
-}
-
 pub struct FileReader {
     block : Cursor<Vec<u8>>,
     len_stack : Vec<u64>
 }
 
 impl FileReader {
+    pub fn from(vec : Vec<u8>) -> FileReader {
+        FileReader {
+            block: Cursor::new(vec),
+            len_stack: vec![]
+        }
+    }
+
     pub fn seek(&mut self, offset : u64) {
         self.block.seek(SeekFrom::Start(offset as u64)).unwrap();
     }
