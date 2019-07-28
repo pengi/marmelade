@@ -31,26 +31,4 @@ impl<'storage> HfsImage<'storage>
             mdb
             })
     }
-
-    // pub fn list_files(&self) -> io::Result<()> {
-    //     let xtbtree = BTree::from(self, &self.mdb.drXTExtRec)?;
-    //     let ctbtree = BTree::from(self, &self.mdb.drCTExtRec)?;
-    //     println!("{:#?}", xtbtree);
-    //     xtbtree.scan()?;
-    //     println!("{:#?}", ctbtree);
-    //     ctbtree.scan()?;
-    //     Ok(())
-    // }
-
-    // fn read_ext_rec(&self, rec: &ExtDataRec, start : usize, len : usize) -> io::Result<FileBlock> {
-    //     let mut f = self.storage.borrow_mut();
-    //     let range = &rec.0[0];
-    //     let offset : u64 = self.start_of_alloc + range.xdrStABN as u64 * self.mdb.drAlBlkSiz as u64 + start as u64;
-    //     let range_len : usize = range.xdrNumABlks as usize *  self.mdb.drAlBlkSiz as usize;
-    //     if range_len < start as usize + len {
-    //         return Err(io::Error::new(io::ErrorKind::Other, "Record read out of range"));
-    //     }
-    //     f.seek(offset)?;
-    //     Ok(f.read_vec(len)?)
-    // }
 }
