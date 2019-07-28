@@ -5,6 +5,7 @@ use super::super::block::{
 use super::FileReadable;
 use super::common::{
     PString,
+    DateTime,
     ExtDataRec
 };
 
@@ -13,8 +14,8 @@ use super::common::{
 #[allow(non_snake_case)] // This struct comes from old Mac structs
 pub struct MDB {
     pub drSigWord: i16,         //Integer,    // volume signature
-    pub drCrDate: i32,          //LongInt,    // date and time of volume creation
-    pub drLsMod: i32,           //LongInt,    // date and time of last modification
+    pub drCrDate: DateTime,     //LongInt,    // date and time of volume creation
+    pub drLsMod: DateTime,      //LongInt,    // date and time of last modification
     pub drAtrb: i16,            //Integer,    // volume attributes
     pub drNmFls: i16,           //Integer,    // number of files in root directory
     pub drVBMSt: i16,           //Integer,    // first block of volume bitmap
@@ -28,7 +29,7 @@ pub struct MDB {
     #[length_start(28)]
     pub drVN: PString,          //String[27], // volume name
     #[length_end()]
-    pub drVolBkUp: i32,         //LongInt,    // date and time of last backup
+    pub drVolBkUp: DateTime,    //LongInt,    // date and time of last backup
     pub drVSeqNum: i16,         //Integer,    // volume backup sequence number
     pub drWrCnt: i32,           //LongInt,    // volume write count
     pub drXTClpSiz: i32,        //LongInt,    // clump size for extents overflow file

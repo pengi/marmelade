@@ -3,6 +3,7 @@ use super::super::block::{
 };
 
 use super::FileReadable;
+use chrono::NaiveDateTime;
 
 pub struct PString (Vec<u8>);
 
@@ -24,6 +25,16 @@ impl FileReadable for PString {
         PString (
             data
         )
+    }
+}
+
+#[derive(Debug)]
+pub struct DateTime (NaiveDateTime);
+
+impl FileReadable for DateTime {
+    fn read(rdr:&mut FileReader) -> DateTime {
+        let val : u32 = FileReadable::read(rdr);
+        DateTime (NaiveDateTime::from_timestamp(val as i64 - 2082844800i64, 0))
     }
 }
 
