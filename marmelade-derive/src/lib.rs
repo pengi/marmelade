@@ -40,7 +40,7 @@ fn reader_for_field(f : &syn::Field) -> TokenStream2 {
     }
 }
 
-#[proc_macro_derive(FileReadable, attributes(length))]
+#[proc_macro_derive(FileReadable, attributes(length_start, length_end))]
 pub fn file_readable(input: TokenStream) -> TokenStream {
     let ast : syn::DeriveInput = syn::parse(input).unwrap();
     

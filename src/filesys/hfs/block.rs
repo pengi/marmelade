@@ -24,31 +24,51 @@ impl FileBlock {
     pub fn to_reader(self) -> FileReader {
         FileReader {
             block: Cursor::new(self.data),
-            next_len: None
+            len_stack: vec![]
         }
     }
 }
 
 pub struct FileReader {
     block : Cursor<Vec<u8>>,
-    next_len : Option<usize>
+    len_stack : Vec<u64>
 }
 
 impl FileReader {
-    pub fn seek(&mut self, offset : usize) {
+    pub fn seek(&mut self, offset : u64) {
         self.block.seek(SeekFrom::Start(offset as u64)).unwrap();
     }
 
-    pub fn length(&mut self, len : usize) {
-        self.next_len = Some(len);
+    pub fn length_start(&mut self, len : u64) -> &mut Self {
+        let cur_pos = self.block.seek(SeekFrom::Current(0)).unwrap();
+        self.len_stack.push(cur_pos + len);
+        self
     }
 
-    pub fn read_u8(&mut self) -> u8 { self.block.read_u8().unwrap() }
-    pub fn read_i8(&mut self) -> i8 { self.block.read_i8().unwrap() }
-    pub fn read_u16(&mut self) -> u16 { self.block.read_u16::<BigEndian>().unwrap() }
-    pub fn read_i16(&mut self) -> i16 { self.block.read_i16::<BigEndian>().unwrap() }
-    pub fn read_u32(&mut self) -> u32 { self.block.read_u32::<BigEndian>().unwrap() }
-    pub fn read_i32(&mut self) -> i32 { self.block.read_i32::<BigEndian>().unwrap() }
+    pub fn length_end(&mut self) -> &mut Self {
+        let pos = self.len_stack.pop().unwrap();
+        self.seek(pos);
+        self
+    }
+
+    pub fn read_u8(&mut self) -> u8 {
+        self.block.read_u8().unwrap()
+    }
+    pub fn read_i8(&mut self) -> i8 {
+        self.block.read_i8().unwrap()
+    }
+    pub fn read_u16(&mut self) -> u16 {
+        self.block.read_u16::<BigEndian>().unwrap()
+    }
+    pub fn read_i16(&mut self) -> i16 {
+        self.block.read_i16::<BigEndian>().unwrap()
+    }
+    pub fn read_u32(&mut self) -> u32 {
+        self.block.read_u32::<BigEndian>().unwrap()
+    }
+    pub fn read_i32(&mut self) -> i32 {
+        self.block.read_i32::<BigEndian>().unwrap()
+    }
 }
 
 impl std::fmt::Debug for FileReader {

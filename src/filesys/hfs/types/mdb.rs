@@ -4,7 +4,7 @@ use super::super::block::{
 
 use super::FileReadable;
 use super::common::{
-    // PString,
+    PString,
     ExtDataRec
 };
 
@@ -25,7 +25,9 @@ pub struct MDB {
     pub drAlBlSt: i16,          //Integer,    // first allocation block in volume
     pub drNxtCNID: i32,         //LongInt,    // next unused catalog node ID
     pub drFreeBks: u16,         //Integer,    // number of unused allocation blocks
-    pub drVN: [u8; 28],         //String[27], // volume name
+    #[length_start(28)]
+    pub drVN: PString,          //String[27], // volume name
+    #[length_end()]
     pub drVolBkUp: i32,         //LongInt,    // date and time of last backup
     pub drVSeqNum: i16,         //Integer,    // volume backup sequence number
     pub drWrCnt: i32,           //LongInt,    // volume write count

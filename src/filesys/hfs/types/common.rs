@@ -4,20 +4,28 @@ use super::super::block::{
 
 use super::FileReadable;
 
-// pub struct PString (Vec<u8>);
+pub struct PString (Vec<u8>);
 
-// impl std::fmt::Debug for PString {
-//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-//         let s = String::from(String::from_utf8_lossy(&self.0));
-//         write!(f, "{:?}", s)
-//     }
-// }
+impl std::fmt::Debug for PString {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let s = String::from(String::from_utf8_lossy(&self.0));
+        write!(f, "{:?}", s)
+    }
+}
 
-// impl FileReadable for PString {
-//     fn read(rdr : &mut FileReader ) -> PString {
-        
-//     }
-// }
+impl FileReadable for PString {
+    fn read(rdr : &mut FileReader ) -> PString {
+        let len : u8 = FileReadable::read(rdr);
+        let mut data = Vec::with_capacity(len as usize);
+        for _ in 0..len {
+            let val : u8 = FileReadable::read(rdr);
+            data.push(val)
+        }
+        PString (
+            data
+        )
+    }
+}
 
 #[derive(Debug)]
 #[derive(FileReadable)]
