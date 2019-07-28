@@ -55,14 +55,16 @@ pub struct FileReader {
     len_stack : Vec<u64>
 }
 
-impl FileReader {
-    pub fn from(vec : Vec<u8>) -> FileReader {
+impl From<Vec<u8>> for FileReader {
+    fn from(vec : Vec<u8>) -> FileReader {
         FileReader {
             block: Cursor::new(vec),
             len_stack: vec![]
         }
     }
+}
 
+impl FileReader {
     pub fn seek(&mut self, offset : u64) {
         self.block.seek(SeekFrom::Start(offset as u64)).unwrap();
     }
@@ -101,7 +103,22 @@ impl FileReader {
 
 impl std::fmt::Debug for FileReader {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "<FileReader>")
+        let inner = self.block.get_ref();
+        let len = inner.len() as usize;
+        let pos = self.block.position() as usize;
+        let start = if pos < 16 { 0 } else { pos-16 };
+        let end = if pos+16 > len { len } else { pos+16 };
+
+        write!(f, "Reader @{} len={}: [...", pos, len)?;
+        for b in &inner[start..pos] {
+            write!(f, " {:02X}", b)?;
+        }
+        write!(f, " * ")?;
+        for b in &inner[pos..end] {
+            write!(f, " {:02X}", b)?;
+        }
+        write!(f, "...]")?;
+        Ok(())
     }
 }
 
