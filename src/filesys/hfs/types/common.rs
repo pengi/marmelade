@@ -35,6 +35,7 @@ impl FileReadable for DateTime {
 }
 
 #[derive(Debug)]
+#[derive(Clone)]
 #[derive(FileReadable)]
 #[allow(non_snake_case)] // This struct comes from old Mac structs
 pub struct ExtDescriptor {
@@ -43,6 +44,7 @@ pub struct ExtDescriptor {
 }
 
 #[derive(Debug)]
+#[derive(Clone)]
 #[derive(FileReadable)]
 #[allow(non_snake_case)] // This struct comes from old Mac structs
 pub struct ExtDataRec(

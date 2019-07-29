@@ -1,20 +1,24 @@
 use super::fileadaptor::FileAccess;
 use super::types::FileReader;
+
 use std::cell::RefCell;
+use std::rc::Rc;
+
 use std::convert::From;
 use super::types::common::ExtDataRec;
 
 #[derive(Debug)]
+#[derive(Clone)]
 pub struct BlockAccess<'storage> {
-    storage: RefCell<&'storage mut dyn FileAccess>,
+    storage: Rc<RefCell<&'storage mut dyn FileAccess>>,
     alblk_start: u64,
     alblk_size: u64
 }
 
 impl<'storage> BlockAccess<'storage> {
-    pub fn new(storage: &'storage mut FileAccess, alblk_start: u64, alblk_size: u64) -> BlockAccess {
+    pub fn new(storage: &'storage mut FileAccess, alblk_start: u64, alblk_size: u64) -> BlockAccess<'storage> {
         BlockAccess {
-            storage: RefCell::new(storage),
+            storage: Rc::new(RefCell::new(storage)),
             alblk_start: alblk_start * 512,
             alblk_size
         }

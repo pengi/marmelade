@@ -13,20 +13,20 @@ use types::{
     };
 use blockaccess::BlockAccess;
 
-use btree::{
-    BTreeHeaderNode
-};
+use btree::BTree;
 
 #[derive(Debug)]
 pub struct HfsImage<'storage>
 {
     storage: BlockAccess<'storage>,
     mdb: MDB,
+    catalog: BTree<'storage>
+    
 }
 
 impl<'storage> HfsImage<'storage>
 {
-    pub fn from(storage: &mut dyn FileAccess) -> io::Result<HfsImage> {
+    pub fn from(storage: &'storage mut dyn FileAccess) -> io::Result<HfsImage> {
         // let size = storage.size()?;
 
         // Bootstrap with getting header, to get block size information
@@ -35,12 +35,10 @@ impl<'storage> HfsImage<'storage>
         let mdb = MDB::read(&mut mdb_block);
 
         // Set up block access
-        let storage = BlockAccess::new(storage, mdb.drAlBlSt as u64, mdb.drAlBlkSiz as u64);
+        let storage:BlockAccess<'storage> = BlockAccess::new(storage, mdb.drAlBlSt as u64, mdb.drAlBlkSiz as u64);
 
-        let mut hdrblock = storage.read_extdatarec(&mdb.drCTExtRec, 0, 512)?;
-        let bt = BTreeHeaderNode::new(&mut hdrblock);
-        println!("{:#?}", bt);
+        let catalog:BTree<'storage> = BTree::new(&storage, &mdb.drCTExtRec)?;
 
-        Ok(HfsImage {storage, mdb})
+        Ok(HfsImage {storage, mdb, catalog})
     }
 }

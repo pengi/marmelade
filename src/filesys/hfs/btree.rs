@@ -1,8 +1,12 @@
-use super::types::{
-    FileReader,
-    FileReadable,
-    btree::NodeDescriptor,
-    btree::BTHdrRec
+use super::{
+    types::{
+        FileReader,
+        FileReadable,
+        common::ExtDataRec,
+        btree::NodeDescriptor,
+        btree::BTHdrRec
+    },
+    blockaccess::BlockAccess
 };
 
 #[derive(Debug)]
@@ -57,5 +61,24 @@ impl From<BTreeNode> for BTreeHeaderNode {
             nd: node.nd,
             header
         }
+    }
+}
+
+#[derive(Debug)]
+pub struct BTree<'storage> {
+    storage : BlockAccess<'storage>,
+    datarec : ExtDataRec,
+    header : BTreeHeaderNode
+}
+
+impl<'storage> BTree<'storage> {
+    pub fn new(storage : &BlockAccess<'storage>, datarec: &ExtDataRec) -> std::io::Result<BTree<'storage>> {
+        let storage = storage.clone();
+        let datarec = datarec.clone();
+
+        let mut headerblock = storage.read_extdatarec(&datarec, 0, 512)?;
+        let header = BTreeHeaderNode::new(&mut headerblock);
+
+        Ok(BTree { storage, datarec, header })
     }
 }
