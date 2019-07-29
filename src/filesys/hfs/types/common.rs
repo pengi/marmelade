@@ -1,6 +1,8 @@
 use super::{FileReader, FileReadable};
 use chrono::NaiveDateTime;
 
+#[derive(PartialEq)]
+#[derive(PartialOrd)]
 pub struct PString (Vec<u8>);
 
 impl std::fmt::Debug for PString {
@@ -11,16 +13,16 @@ impl std::fmt::Debug for PString {
 }
 
 impl FileReadable for PString {
-    fn read(rdr : &mut FileReader ) -> PString {
-        let len : u8 = FileReadable::read(rdr);
+    fn read(rdr : &mut FileReader ) -> std::io::Result<PString> {
+        let len : u8 = FileReadable::read(rdr)?;
         let mut data = Vec::with_capacity(len as usize);
         for _ in 0..len {
-            let val : u8 = FileReadable::read(rdr);
+            let val : u8 = FileReadable::read(rdr)?;
             data.push(val)
         }
-        PString (
+        Ok(PString (
             data
-        )
+        ))
     }
 }
 
@@ -28,9 +30,9 @@ impl FileReadable for PString {
 pub struct DateTime (NaiveDateTime);
 
 impl FileReadable for DateTime {
-    fn read(rdr:&mut FileReader) -> DateTime {
-        let val : u32 = FileReadable::read(rdr);
-        DateTime (NaiveDateTime::from_timestamp(val as i64 - 2082844800i64, 0))
+    fn read(rdr:&mut FileReader) -> std::io::Result<DateTime> {
+        let val : u32 = FileReadable::read(rdr)?;
+        Ok( DateTime (NaiveDateTime::from_timestamp(val as i64 - 2082844800i64, 0)))
     }
 }
 

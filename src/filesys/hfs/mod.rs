@@ -1,6 +1,7 @@
 mod types;
 mod blockaccess;
 mod btree;
+mod catalog;
 pub mod fileadaptor;
 
 use std::io;
@@ -13,14 +14,14 @@ use types::{
     };
 use blockaccess::BlockAccess;
 
-use btree::BTree;
+use catalog::Catalog;
 
 #[derive(Debug)]
 pub struct HfsImage<'storage>
 {
     storage: BlockAccess<'storage>,
     mdb: MDB,
-    catalog: BTree<'storage>
+    catalog: Catalog<'storage>
     
 }
 
@@ -32,12 +33,14 @@ impl<'storage> HfsImage<'storage>
         // Bootstrap with getting header, to get block size information
         storage.seek(2*512)?;
         let mut mdb_block : FileReader = FileReader::from(storage.read(512)?);
-        let mdb = MDB::read(&mut mdb_block);
+        let mdb = MDB::read(&mut mdb_block)?;
 
         // Set up block access
-        let storage:BlockAccess<'storage> = BlockAccess::new(storage, mdb.drAlBlSt as u64, mdb.drAlBlkSiz as u64);
+        let storage = BlockAccess::new(storage, mdb.drAlBlSt as u64, mdb.drAlBlkSiz as u64);
 
-        let catalog:BTree<'storage> = BTree::new(&storage, &mdb.drCTExtRec)?;
+        let catalog = Catalog::new(&storage, &mdb.drCTExtRec)?;
+
+        catalog.list_files();
 
         Ok(HfsImage {storage, mdb, catalog})
     }
