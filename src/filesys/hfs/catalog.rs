@@ -24,8 +24,8 @@ impl<'storage> Catalog<'storage> {
     }
 
     pub fn list_files(&self) {
-        for file in self.btree.iter() {
-            println!("{:#?}", file);
+        for (key, val) in self.btree.iter().unwrap() {
+            println!("{:?} {:?}", key, val);
         }
     }
 }

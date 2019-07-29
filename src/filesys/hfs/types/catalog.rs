@@ -140,11 +140,18 @@ pub enum CatDataRec {
     CdrFThdRec(CdrFThdRec),
 }
 
+#[derive(Debug)]
+#[derive(FileReadable)]
+#[allow(non_snake_case)]
+struct CatDataRecHeader {
+   cdrType:       i8, // SignedByte; {record type}
+   cdrResrv2:     i8, // SignedByte; {reserved}
+}
+
 impl FileReadable for CatDataRec {
     fn read(rdr : &mut FileReader) -> std::io::Result<CatDataRec> {
-        let t = rdr.read_u8()?;
-        rdr.pad(1);
-        Ok(match t {
+        let header = CatDataRecHeader::read(rdr)?;
+        Ok(match header.cdrType {
             1 => CatDataRec::CdrDirRec(CdrDirRec::read(rdr)?),
             2 => CatDataRec::CdrFilRec(CdrFilRec::read(rdr)?),
             3 => CatDataRec::CdrThdRec(CdrThdRec::read(rdr)?),

@@ -106,8 +106,8 @@ impl From<BTreeNode> for BTreeHeaderNode {
 #[derive(Debug)]
 pub struct BTreeLeafNode<K, V>
 where
-    K: FileReadable + PartialOrd,
-    V: FileReadable
+    K: FileReadable + PartialOrd + std::fmt::Debug,
+    V: FileReadable + std::fmt::Debug
 {
     nd: NodeDescriptor,
     recs: Vec<(K, V)>,
@@ -133,49 +133,62 @@ where
 
         let mut recs = Vec::with_capacity(node.recs.len());
 
-        println!("{:#?}", node.nd);
-
         for mut rdr in node.recs {
             if let Ok(key) = K::read(&mut rdr) {
                 rdr.align(2);
                 if let Ok(val) = V::read(&mut rdr) {
-                    println!("{:#?} {:#?}", key, val);
                     recs.push((key, val));
                 }
             }
-            println!("{:#?}", rdr);
         }
 
         BTreeLeafNode { nd: node.nd, recs }
     }
 }
 
-pub struct BTreeIter<K, V>
+pub struct BTreeIter<'iter, 'storage, K, V>
 where
-    K: FileReadable + PartialOrd,
-    V: FileReadable
+    K: FileReadable + PartialOrd + std::fmt::Debug,
+    V: FileReadable + std::fmt::Debug
 {
-    key_type: PhantomData<K>,
-    value_type: PhantomData<V>,
+    btree: &'iter BTree<'storage, K, V>,
+    nd: NodeDescriptor,
+    recs: Vec<(K, V)>
 }
 
-impl<K, V> std::iter::Iterator for BTreeIter<K, V>
+impl<'iter, 'storage, K, V> std::iter::Iterator for BTreeIter<'iter, 'storage, K, V>
 where
-    K: FileReadable + PartialOrd,
-    V: FileReadable
+    K: FileReadable + PartialOrd + std::fmt::Debug,
+    V: FileReadable + std::fmt::Debug
 {
     type Item = (K, V);
 
     fn next(&mut self) -> Option<Self::Item> {
-        None
+        if let Some(elem) = self.recs.pop() {
+            Some(elem)
+        } else {
+            if self.nd.ndFLink == 0 {
+                None
+            } else if let Ok(newiter) = self.btree.iter_from_block(self.nd.ndFLink) {
+                self.nd = newiter.nd;
+                self.recs = newiter.recs;
+                if let Some(elem) = self.recs.pop() {
+                    Some(elem)
+                } else {
+                    None
+                }
+            } else {
+                None
+            }
+        }
     }
 }
 
 #[derive(Debug)]
 pub struct BTree<'storage, K, V>
 where
-    K: FileReadable + PartialOrd,
-    V: FileReadable
+    K: FileReadable + PartialOrd + std::fmt::Debug,
+    V: FileReadable + std::fmt::Debug
 {
     storage: BlockAccess<'storage>,
     datarec: ExtDataRec,
@@ -208,20 +221,26 @@ where
             value_type: PhantomData,
         })
     }
+    pub fn iter<'iter>(&'iter self) -> std::io::Result<BTreeIter<'iter, 'storage, K, V>> {
+        self.iter_from_block(self.header.header.bthFNode)
+    }
 
-    pub fn iter(&self) -> BTreeIter<K, V> {
+    fn iter_from_block<'iter>(&'iter self, blknum: u32) -> std::io::Result<BTreeIter<'iter, 'storage, K, V>> {
         let mut lnblk = self.storage.read_extdatarec(
             &self.datarec,
-            self.header.header.bthFNode as u64 * 512,
+            blknum as u64 * 512,
             512,
-        ).unwrap();
-        let ln = BTreeLeafNode::<K, V>::new(&mut lnblk);
+        )?;
 
-        println!("{:#?}", ln);
+        let node = BTreeLeafNode::<K, V>::new(&mut lnblk)?;
 
-        BTreeIter {
-            key_type: PhantomData,
-            value_type: PhantomData,
-        }
+        let mut recs = node.recs;
+        recs.reverse();
+
+        Ok(BTreeIter::<'iter, 'storage, K, V> {
+            btree: self,
+            nd: node.nd,
+            recs: recs
+        })
     }
 }
