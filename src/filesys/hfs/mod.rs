@@ -11,7 +11,7 @@ use types::{
     FileReader,
     FileReadable,
     mdb::MDB,
-    catalog::{CatKeyRec, CatDataRec}
+    catalog::CatDataRec
     };
 use blockaccess::BlockAccess;
 

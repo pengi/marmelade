@@ -31,7 +31,7 @@ impl<'storage> Catalog<'storage> {
 
     pub fn dir<'iter>(&'iter self, dir: u32) -> CatalogIterator<'iter, 'storage> {
         CatalogIterator {
-            iter: self.btree.iter::<'iter>(),
+            iter: self.btree.iter(),
             dir
         }
     }
@@ -44,8 +44,8 @@ impl<'storage> Catalog<'storage> {
         for part in path {
             let ppart = PString::from(part);
             let dir = iter.find(|(key, data)| match data {
-                CatDataRec::CdrDirRec(d) => key.ckrCName == ppart,
-                CatDataRec::CdrFilRec(f) => false,
+                CatDataRec::CdrDirRec(_) => key.ckrCName == ppart,
+                CatDataRec::CdrFilRec(_) => false,
                 _ => false
             });
 
