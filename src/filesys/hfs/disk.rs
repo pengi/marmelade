@@ -1,31 +1,31 @@
 use std::io;
 
-pub struct FileAdaptor<T: io::Read + io::Seek> (T);
+pub struct DiskAdaptor<T: io::Read + io::Seek> (T);
 
-pub trait FileAccess : std::fmt::Debug {
+pub trait DiskAccess : std::fmt::Debug {
     fn seek(&mut self, pos : u64) -> io::Result<u64>;
     fn size(&mut self) -> io::Result<u64>;
     fn pos(&mut self) -> io::Result<u64>;
     fn read(&mut self, len : u64) -> io::Result<Vec<u8>>;
 }
 
-impl<T> FileAdaptor<T>
+impl<T> DiskAdaptor<T>
 where
 T: io::Read + io::Seek {
     // Put in box, so it is always sized, for easier handling. The reason for
     // file adaptor is to have a uniform wrapper for different file types
-    pub fn new(f: T) -> Box<FileAdaptor<T>> {
-        Box::new(FileAdaptor(f))
+    pub fn new(f: T) -> Box<DiskAdaptor<T>> {
+        Box::new(DiskAdaptor(f))
     }
 }
 
-impl<T : std::io::Read + std::io::Seek> std::fmt::Debug for FileAdaptor<T> {
+impl<T : std::io::Read + std::io::Seek> std::fmt::Debug for DiskAdaptor<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "FileAccess()")
+        write!(f, "DiskAccess()")
     }
 }
 
-impl<T> FileAccess for FileAdaptor<T>
+impl<T> DiskAccess for DiskAdaptor<T>
 where
 T: io::Read + io::Seek {
     fn seek(&mut self, pos : u64) -> io::Result<u64> {

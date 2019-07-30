@@ -2,7 +2,7 @@
 extern crate clap;
 
 use marmelade::filesys::hfs;
-use marmelade::filesys::hfs::FileAdaptor;
+use marmelade::filesys::hfs::DiskAdaptor;
 use std::fs;
 
 fn main() {
@@ -15,7 +15,7 @@ fn main() {
     ).get_matches();
 
     let img = fs::File::open(matches.value_of("img").unwrap()).unwrap();
-    let fa = FileAdaptor::new(img);
+    let fa = DiskAdaptor::new(img);
     let fs = hfs::HfsImage::from(fa).unwrap();
 
     if let Some(file) = matches.value_of("file") {

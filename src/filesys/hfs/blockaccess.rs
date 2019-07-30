@@ -1,4 +1,4 @@
-use super::fileadaptor::FileAccess;
+use super::DiskAccess;
 use super::types::FileReader;
 
 use std::cell::RefCell;
@@ -10,13 +10,13 @@ use super::types::common::ExtDataRec;
 #[derive(Debug)]
 #[derive(Clone)]
 pub struct BlockAccess {
-    storage: Rc<RefCell<Box<dyn FileAccess>>>,
+    storage: Rc<RefCell<Box<dyn DiskAccess>>>,
     alblk_start: u64,
     alblk_size: u64
 }
 
 impl BlockAccess {
-    pub fn new(storage: Box<dyn FileAccess>, alblk_start: u64, alblk_size: u64) -> BlockAccess {
+    pub fn new(storage: Box<dyn DiskAccess>, alblk_start: u64, alblk_size: u64) -> BlockAccess {
         BlockAccess {
             storage: Rc::new(RefCell::new(storage)),
             alblk_start: alblk_start * 512,

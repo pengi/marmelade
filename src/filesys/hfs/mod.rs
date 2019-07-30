@@ -2,12 +2,12 @@ mod types;
 mod blockaccess;
 mod btree;
 mod catalog;
-mod fileadaptor;
+mod disk;
 
 use std::io;
 
-use fileadaptor::FileAccess;
-pub use fileadaptor::FileAdaptor;
+use disk::DiskAccess;
+pub use disk::DiskAdaptor;
 
 use types::{
     FileReader,
@@ -29,7 +29,7 @@ pub struct HfsImage
 
 impl HfsImage
 {
-    pub fn from(storage: Box<dyn FileAccess>) -> io::Result<HfsImage> {
+    pub fn from(storage: Box<dyn DiskAccess>) -> io::Result<HfsImage> {
         let mut storage = storage;
         // let size = storage.size()?;
 
