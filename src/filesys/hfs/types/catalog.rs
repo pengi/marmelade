@@ -8,6 +8,32 @@ use super::{
     }
 };
 
+#[derive(PartialEq)]
+#[derive(FileReadable)]
+pub struct OSType ([u8;4]);
+
+impl std::fmt::Debug for OSType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "\'{}{}{}{}\'",
+            self.0[0] as char,
+            self.0[1] as char,
+            self.0[2] as char,
+            self.0[3] as char
+        )
+    }
+}
+
+impl std::fmt::Display for OSType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "\'{}{}{}{}\'",
+            self.0[0] as char,
+            self.0[1] as char,
+            self.0[2] as char,
+            self.0[3] as char
+        )
+    }
+}
+
 #[derive(FileReadable)]
 #[derive(Debug)]
 #[allow(non_snake_case)] // This struct comes from old Mac structs
@@ -28,8 +54,8 @@ pub struct Rect {
 #[derive(Debug)]
 #[allow(non_snake_case)] // This struct comes from old Mac structs
 pub struct FInfo {
-    fdType:     u32, // OSType;     {file type}
-    fdCreator:  u32, // OSType;     {file creator}
+    fdType:     OSType, // OSType;     {file type}
+    fdCreator:  OSType, // OSType;     {file creator}
     fdFlags:    u16, // Integer;    {Finder flags}
     fdLocation: Point, // Point;      {file's location in window}
     fdFldr:     u16, // Integer;    {directory that contains file}
