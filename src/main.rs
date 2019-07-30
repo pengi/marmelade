@@ -3,7 +3,10 @@ extern crate clap;
 
 use marmelade::filesys::hfs;
 use marmelade::filesys::hfs::DiskAdaptor;
-use marmelade::filesys::hfs::HfsDirIter;
+use marmelade::filesys::hfs::{
+    HfsObjRef,
+    HfsDirIter
+};
 use std::fs;
 
 fn main() {
@@ -15,7 +18,8 @@ fn main() {
         (@arg file: -f --file +takes_value "File to read")
     ).get_matches();
 
-    let img = fs::File::open(matches.value_of("img").unwrap()).unwrap();
+    let imgfile = matches.value_of("img").unwrap();
+    let img = fs::File::open(imgfile).unwrap();
     let fa = DiskAdaptor::new(img);
     let fs = hfs::HfsImage::from(fa).unwrap();
 
@@ -32,13 +36,15 @@ fn print_files(dir: HfsDirIter, indent: usize) {
     let indstr = String::from("    ").repeat(indent);
 
     for obj in dir {
-        if obj.is_dir() {
-            println!("{}{:?}:", indstr, obj.get_name());
-            print_files(obj.open_dir().unwrap(), indent+1);
-        }
-        if obj.is_file() {
-            let (data_size, rsrc_size) = obj.get_size();
-            println!("{}{:?} (size: {}/{})", indstr, obj.get_name(), data_size, rsrc_size);
+        match obj {
+            HfsObjRef::FileRef(file) => {
+                let (data_size, rsrc_size) = file.get_size();
+                println!("{}{:?} (size: {}/{})", indstr, file.get_name(), data_size, rsrc_size);
+            },
+            HfsObjRef::DirRef(dir) => {
+                println!("{}{:?}:", indstr, dir.get_name());
+                print_files(dir.open(), indent+1);
+            }
         }
     }
 }

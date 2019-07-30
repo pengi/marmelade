@@ -76,8 +76,11 @@ impl HfsImage
         let mut iter = self.open_root();
         for part in path {
             let obj = iter.find(|objr| objr.get_name() == part)?;
-
-            iter = obj.open_dir()?;
+            if let HfsObjRef::DirRef(dir) = obj {
+                iter = dir.open();
+            } else {
+                return None;
+            }
         }
         iter.find(|objr| objr.get_name() == plast)
     }
@@ -127,11 +130,31 @@ impl<'img> std::iter::Iterator for HfsDirIter<'img> {
     }
 }
 
+impl<'img> HfsFileRef<'img> {
+    pub fn get_name(&self) -> String {
+        String::from(&self.key.ckrCName)
+    }
+
+    pub fn get_size(&self) -> (u32, u32) {
+        (self.fr.filLgLen, self.fr.filRLgLen)
+    }
+}
+
+impl<'img> HfsDirRef<'img> {
+    pub fn get_name(&self) -> String {
+        String::from(&self.key.ckrCName)
+    }
+
+    pub fn open(&self) -> HfsDirIter<'img> {
+        self.img.open_dir(self.dr.dirDirID)
+    }
+}
+
 impl<'img> HfsObjRef<'img> {
     pub fn get_name(&self) -> String {
         match self {
-            HfsObjRef::FileRef(fr) => String::from(&fr.key.ckrCName),
-            HfsObjRef::DirRef(dr) => String::from(&dr.key.ckrCName)
+            HfsObjRef::FileRef(fr) => fr.get_name(),
+            HfsObjRef::DirRef(dr) => dr.get_name()
         }
     }
 
@@ -146,21 +169,6 @@ impl<'img> HfsObjRef<'img> {
         match self {
             HfsObjRef::FileRef(_) => true,
             HfsObjRef::DirRef(_) => false
-        }
-    }
-
-    pub fn open_dir(&self) -> Option<HfsDirIter<'img>> {
-        if let HfsObjRef::DirRef(dir) = self {
-            Some(dir.img.open_dir(dir.dr.dirDirID))
-        } else {
-            None
-        }
-    }
-
-    pub fn get_size(&self) -> (u32, u32) {
-        match self {
-            HfsObjRef::FileRef(fr) => (fr.fr.filLgLen, fr.fr.filRLgLen),
-            HfsObjRef::DirRef(_dr) => (0, 0)
         }
     }
 }
