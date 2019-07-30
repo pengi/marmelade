@@ -8,7 +8,14 @@ pub struct PString (Vec<u8>);
 impl std::fmt::Debug for PString {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let s = String::from(String::from_utf8_lossy(&self.0));
-        write!(f, "{:?}", s)
+        std::fmt::Debug::fmt(&s, f)
+    }
+}
+
+impl std::fmt::Display for PString {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let s = String::from(String::from_utf8_lossy(&self.0));
+        std::fmt::Display::fmt(&s, f)
     }
 }
 
@@ -23,6 +30,12 @@ impl FileReadable for PString {
         Ok(PString (
             data
         ))
+    }
+}
+
+impl From<&str> for PString {
+    fn from(s: &str) -> PString {
+        PString(Vec::from(s))
     }
 }
 

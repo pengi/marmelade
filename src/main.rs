@@ -8,5 +8,9 @@ fn main() {
     let fs = hfs::HfsImage::from(&mut fa).unwrap();
 
     println!("{:#?}", fs);
+
+    fs.list_recursive(1, 0);
+    let file = fs.catalog.locate("SimpleText");
+    println!("File: {:#?}", file);
     // fs.list_files().unwrap();
 }

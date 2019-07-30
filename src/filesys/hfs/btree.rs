@@ -169,16 +169,11 @@ where
         } else {
             if self.nd.ndFLink == 0 {
                 None
-            } else if let Ok(newiter) = self.btree.iter_from_block(self.nd.ndFLink) {
+            } else {
+                let newiter = self.btree.iter_from_block(self.nd.ndFLink);
                 self.nd = newiter.nd;
                 self.recs = newiter.recs;
-                if let Some(elem) = self.recs.pop() {
-                    Some(elem)
-                } else {
-                    None
-                }
-            } else {
-                None
+                self.recs.pop()
             }
         }
     }
@@ -221,11 +216,12 @@ where
             value_type: PhantomData,
         })
     }
-    pub fn iter<'iter>(&'iter self) -> std::io::Result<BTreeIter<'iter, 'storage, K, V>> {
+    
+    pub fn iter<'iter>(&'iter self) -> BTreeIter<'iter, 'storage, K, V> {
         self.iter_from_block(self.header.header.bthFNode)
     }
 
-    fn iter_from_block<'iter>(&'iter self, blknum: u32) -> std::io::Result<BTreeIter<'iter, 'storage, K, V>> {
+    fn try_iter_from_block<'iter>(&'iter self, blknum: u32) -> std::io::Result<BTreeIter<'iter, 'storage, K, V>> {
         let mut lnblk = self.storage.read_extdatarec(
             &self.datarec,
             blknum as u64 * 512,
@@ -242,5 +238,24 @@ where
             nd: node.nd,
             recs: recs
         })
+    }
+
+    fn iter_from_block<'iter>(&'iter self, blknum: u32) -> BTreeIter<'iter, 'storage, K, V> {
+        if let Ok(iter) = self.try_iter_from_block(blknum) {
+            iter
+        } else {
+            BTreeIter::<'iter, 'storage, K, V> {
+                btree: self,
+                nd: NodeDescriptor {
+                    ndFLink:   0,
+                    ndBLink:   0,
+                    ndType:    0,
+                    ndNHeight: 0,
+                    ndNRecs:   0,
+                    ndResv2:   0
+                },
+                recs: vec![]
+            }
+        }
     }
 }
