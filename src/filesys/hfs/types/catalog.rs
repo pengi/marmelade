@@ -10,14 +10,19 @@ use super::{
 
 #[derive(FileReadable)]
 #[derive(Debug)]
+#[allow(non_snake_case)] // This struct comes from old Mac structs
 pub struct Point {
-   x: i16,
-   y: i16
+   v: i16, // INTEGER:     {vertical coordinate}
+   h: i16  // INTEGER;     {horizontal  coordinate}
 }
 
 #[derive(FileReadable)]
 #[derive(Debug)]
-pub struct Rect (i16, i16, i16, i16);
+#[allow(non_snake_case)] // This struct comes from old Mac structs
+pub struct Rect {
+   topLeft: Point,
+   botRight: Point,
+}
 
 #[derive(FileReadable)]
 #[derive(Debug)]
