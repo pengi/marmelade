@@ -39,6 +39,12 @@ impl From<&str> for PString {
     }
 }
 
+impl From<&PString> for String {
+    fn from(s: &PString) -> String {
+        String::from(String::from_utf8_lossy(&s.0[..]))
+    }
+}
+
 #[derive(Debug)]
 pub struct DateTime (NaiveDateTime);
 

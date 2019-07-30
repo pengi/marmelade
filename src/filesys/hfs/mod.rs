@@ -13,11 +13,19 @@ use types::{
     FileReader,
     FileReadable,
     mdb::MDB,
-    catalog::CatDataRec
-    };
+    catalog::{
+        CatDataRec,
+        CatKeyRec,
+        CdrFilRec,
+        CdrDirRec
+    }
+};
 use blockaccess::BlockAccess;
 
-use catalog::Catalog;
+use catalog::{
+    Catalog,
+    CatalogIterator
+};
 
 #[derive(Debug)]
 pub struct HfsImage
@@ -46,39 +54,106 @@ impl HfsImage
         Ok(HfsImage {storage, mdb, catalog})
     }
 
-    pub fn list_recursive(&self, dir : u32, indent: i32) {
-        let indstr = String::from("  ").repeat(indent as usize);
-        for (key, data) in self.catalog.dir(dir) {
-            match data {
-                CatDataRec::CdrDirRec(d) => {
-                    println!("{}D {}: {}", indstr, d.dirDirID, key.ckrCName);
-                    self.list_recursive(d.dirDirID, indent+1);
-                }
-                CatDataRec::CdrFilRec(f) => {
-                    println!("{}F {}: {}", indstr, f.filFlNum, key.ckrCName);
-                },
-                CatDataRec::CdrThdRec(thd) | CatDataRec::CdrFThdRec(thd) => {
-                    println!("{}T {}: {}", indstr, thd.thdParID, thd.thdCName);
-                }
-            }
+    pub fn open_root<'img>(&'img self) -> HfsDirIter<'img> {
+        HfsDirIter {
+            img: self,
+            iter: self.catalog.dir(2)
+        }
+    }
+
+    fn open_dir<'img>(&'img self, dir: u32) -> HfsDirIter<'img> {
+        HfsDirIter {
+            img: self,
+            iter: self.catalog.dir(dir)
+        }
+    }
+
+    pub fn locate<'img>(&'img self, path: &str) -> Option<HfsObjRef<'img>> {
+        let mut path: Vec<&str> = path.split(':').collect();
+
+        let plast = path.pop()?;
+
+        let mut iter = self.open_root();
+        for part in path {
+            let obj = iter.find(|objr| objr.get_name() == part)?;
+
+            iter = obj.open_dir()?;
+        }
+        iter.find(|objr| objr.get_name() == plast)
+    }
+}
+
+
+pub struct HfsDirIter<'img> {
+    img: &'img HfsImage,
+    iter: CatalogIterator<'img>
+}
+
+#[derive(Debug)]
+pub struct HfsFileRef<'img> {
+    img: &'img HfsImage,
+    key: CatKeyRec,
+    fr: CdrFilRec
+}
+
+#[derive(Debug)]
+pub struct HfsDirRef<'img> {
+    img: &'img HfsImage,
+    key: CatKeyRec,
+    dr: CdrDirRec
+}
+
+#[derive(Debug)]
+pub enum HfsObjRef<'img> {
+    FileRef(HfsFileRef<'img>),
+    DirRef(HfsDirRef<'img>)
+}
+
+impl<'img> std::iter::Iterator for HfsDirIter<'img> {
+    type Item = HfsObjRef<'img>;
+
+    fn next(&mut self) -> Option<HfsObjRef<'img>> {
+        let (key, elem) = self.iter.next()?;
+
+        match elem {
+            CatDataRec::CdrFilRec(fr) => {
+                Some(HfsObjRef::FileRef(HfsFileRef{ img: self.img, key, fr }))
+            },
+            CatDataRec::CdrDirRec(dr) => {
+                Some(HfsObjRef::DirRef(HfsDirRef{ img: self.img, key, dr }))
+            },
+            _ => None
         }
     }
 }
 
-#[derive(Debug)]
-pub struct File {
+impl<'img> HfsObjRef<'img> {
+    pub fn get_name(&self) -> String {
+        match self {
+            HfsObjRef::FileRef(fr) => String::from(&fr.key.ckrCName),
+            HfsObjRef::DirRef(dr) => String::from(&dr.key.ckrCName)
+        }
+    }
 
-}
+    pub fn is_dir(&self) -> bool {
+        match self {
+            HfsObjRef::FileRef(_) => false,
+            HfsObjRef::DirRef(_) => true
+        }
+    }
 
-#[derive(Debug)]
-pub struct FileIter {
+    pub fn is_file(&self) -> bool {
+        match self {
+            HfsObjRef::FileRef(_) => true,
+            HfsObjRef::DirRef(_) => false
+        }
+    }
 
-}
-
-impl std::iter::Iterator for FileIter {
-    type Item = File;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        unimplemented!()
+    pub fn open_dir(&self) -> Option<HfsDirIter<'img>> {
+        if let HfsObjRef::DirRef(dir) = self {
+            Some(dir.img.open_dir(dir.dr.dirDirID))
+        } else {
+            None
+        }
     }
 }

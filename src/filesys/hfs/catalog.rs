@@ -1,7 +1,6 @@
 use super::{
     types::{
         common::{
-            PString,
             ExtDataRec
         },
         catalog::{
@@ -33,35 +32,6 @@ impl Catalog {
         CatalogIterator {
             iter: self.btree.iter(),
             dir
-        }
-    }
-
-    pub fn locate(&self, path: &str) -> Option<CatDataRec> {
-        let mut iter = self.dir(2);
-        let mut path: Vec<&str> = path.split(':').collect();
-        let plast = PString::from(path.pop()?);
-
-        for part in path {
-            let ppart = PString::from(part);
-            let dir = iter.find(|(key, data)| match data {
-                CatDataRec::CdrDirRec(_) => key.ckrCName == ppart,
-                CatDataRec::CdrFilRec(_) => false,
-                _ => false
-            });
-
-            if let Some((_, CatDataRec::CdrDirRec(d))) = dir {
-                iter = self.dir(d.dirDirID);
-            } else {
-                return None;
-            }
-        }
-
-        if let Some((_, obj)) = iter.find(
-            |(key, data)| data.is_object() && key.ckrCName == plast
-        ) {
-            Some(obj)
-        } else {
-            None
         }
     }
 }

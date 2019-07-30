@@ -3,6 +3,7 @@ extern crate clap;
 
 use marmelade::filesys::hfs;
 use marmelade::filesys::hfs::DiskAdaptor;
+use marmelade::filesys::hfs::HfsDirIter;
 use std::fs;
 
 fn main() {
@@ -19,10 +20,24 @@ fn main() {
     let fs = hfs::HfsImage::from(fa).unwrap();
 
     if let Some(file) = matches.value_of("file") {
-        let file = fs.catalog.locate(file);
+        let file = fs.locate(file);
         println!("File: {:#?}", file);
     } else {
-        // println!("Image: {:#?}", fs);
-        fs.list_recursive(1, 0);
+        print_files(fs.open_root(), 0);
+    }
+}
+
+
+fn print_files(dir: HfsDirIter, indent: usize) {
+    let indstr = String::from("    ").repeat(indent);
+
+    for obj in dir {
+        if obj.is_dir() {
+            println!("{}{:?}:", indstr, obj.get_name());
+            print_files(obj.open_dir().unwrap(), indent+1);
+        }
+        if obj.is_file() {
+            println!("{}{:?}", indstr, obj.get_name());
+        }
     }
 }
