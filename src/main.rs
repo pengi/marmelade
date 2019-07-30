@@ -1,5 +1,5 @@
 use marmelade::filesys::hfs;
-use marmelade::filesys::hfs::fileadaptor::FileAdaptor;
+use marmelade::filesys::hfs::FileAdaptor;
 use std::fs;
 
 fn main() {
