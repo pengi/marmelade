@@ -17,19 +17,19 @@ use super::{
 };
 
 #[derive(Debug)]
-pub struct Catalog<'storage> {
-    btree: BTree<'storage, CatKeyRec, CatDataRec>
+pub struct Catalog {
+    btree: BTree<CatKeyRec, CatDataRec>
 }
 
-impl<'storage> Catalog<'storage> {
-    pub fn new(storage : &BlockAccess<'storage>, datarec: &ExtDataRec) -> std::io::Result<Catalog<'storage>> {
+impl Catalog {
+    pub fn new(storage : &BlockAccess, datarec: &ExtDataRec) -> std::io::Result<Catalog> {
         let btree = BTree::new(storage, datarec)?;
         Ok(Catalog{
             btree
         })
     }
 
-    pub fn dir<'iter>(&'iter self, dir: u32) -> CatalogIterator<'iter, 'storage> {
+    pub fn dir<'iter>(&'iter self, dir: u32) -> CatalogIterator<'iter> {
         CatalogIterator {
             iter: self.btree.iter(),
             dir
@@ -66,12 +66,12 @@ impl<'storage> Catalog<'storage> {
     }
 }
 
-pub struct CatalogIterator<'iter, 'storage> {
-    iter: BTreeIter<'iter, 'storage, CatKeyRec, CatDataRec>,
+pub struct CatalogIterator<'iter> {
+    iter: BTreeIter<'iter, CatKeyRec, CatDataRec>,
     dir: u32
 }
 
-impl<'iter, 'storage> std::iter::Iterator for CatalogIterator<'iter, 'storage> {
+impl<'iter> std::iter::Iterator for CatalogIterator<'iter> {
     type Item = (CatKeyRec, CatDataRec);
 
     fn next(&mut self) -> Option<Self::Item> {

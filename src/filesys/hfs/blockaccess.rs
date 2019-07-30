@@ -9,14 +9,14 @@ use super::types::common::ExtDataRec;
 
 #[derive(Debug)]
 #[derive(Clone)]
-pub struct BlockAccess<'storage> {
-    storage: Rc<RefCell<&'storage mut dyn FileAccess>>,
+pub struct BlockAccess {
+    storage: Rc<RefCell<Box<FileAccess>>>,
     alblk_start: u64,
     alblk_size: u64
 }
 
-impl<'storage> BlockAccess<'storage> {
-    pub fn new(storage: &'storage mut FileAccess, alblk_start: u64, alblk_size: u64) -> BlockAccess<'storage> {
+impl BlockAccess {
+    pub fn new(storage: Box<FileAccess>, alblk_start: u64, alblk_size: u64) -> BlockAccess {
         BlockAccess {
             storage: Rc::new(RefCell::new(storage)),
             alblk_start: alblk_start * 512,

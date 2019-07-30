@@ -146,17 +146,17 @@ where
     }
 }
 
-pub struct BTreeIter<'iter, 'storage, K, V>
+pub struct BTreeIter<'iter, K, V>
 where
     K: FileReadable + PartialOrd + std::fmt::Debug,
     V: FileReadable + std::fmt::Debug
 {
-    btree: &'iter BTree<'storage, K, V>,
+    btree: &'iter BTree<K, V>,
     nd: NodeDescriptor,
     recs: Vec<(K, V)>
 }
 
-impl<'iter, 'storage, K, V> std::iter::Iterator for BTreeIter<'iter, 'storage, K, V>
+impl<'iter, K, V> std::iter::Iterator for BTreeIter<'iter, K, V>
 where
     K: FileReadable + PartialOrd + std::fmt::Debug,
     V: FileReadable + std::fmt::Debug
@@ -180,12 +180,12 @@ where
 }
 
 #[derive(Debug)]
-pub struct BTree<'storage, K, V>
+pub struct BTree<K, V>
 where
     K: FileReadable + PartialOrd + std::fmt::Debug,
     V: FileReadable + std::fmt::Debug
 {
-    storage: BlockAccess<'storage>,
+    storage: BlockAccess,
     datarec: ExtDataRec,
     header: BTreeHeaderNode,
 
@@ -193,15 +193,15 @@ where
     value_type: PhantomData<V>,
 }
 
-impl<'storage, K, V> BTree<'storage, K, V>
+impl<K, V> BTree<K, V>
 where
     K: FileReadable + PartialOrd + std::fmt::Debug,
     V: FileReadable + std::fmt::Debug
 {
     pub fn new(
-        storage: &BlockAccess<'storage>,
+        storage: &BlockAccess,
         datarec: &ExtDataRec,
-    ) -> std::io::Result<BTree<'storage, K, V>> {
+    ) -> std::io::Result<BTree<K, V>> {
         let storage = storage.clone();
         let datarec = datarec.clone();
 
@@ -216,12 +216,12 @@ where
             value_type: PhantomData,
         })
     }
-    
-    pub fn iter<'iter>(&'iter self) -> BTreeIter<'iter, 'storage, K, V> {
+
+    pub fn iter<'iter>(&'iter self) -> BTreeIter<'iter, K, V> {
         self.iter_from_block(self.header.header.bthFNode)
     }
 
-    fn try_iter_from_block<'iter>(&'iter self, blknum: u32) -> std::io::Result<BTreeIter<'iter, 'storage, K, V>> {
+    fn try_iter_from_block<'iter>(&'iter self, blknum: u32) -> std::io::Result<BTreeIter<'iter, K, V>> {
         let mut lnblk = self.storage.read_extdatarec(
             &self.datarec,
             blknum as u64 * 512,
@@ -233,18 +233,18 @@ where
         let mut recs = node.recs;
         recs.reverse();
 
-        Ok(BTreeIter::<'iter, 'storage, K, V> {
+        Ok(BTreeIter::<'iter, K, V> {
             btree: self,
             nd: node.nd,
             recs: recs
         })
     }
 
-    fn iter_from_block<'iter>(&'iter self, blknum: u32) -> BTreeIter<'iter, 'storage, K, V> {
+    fn iter_from_block<'iter>(&'iter self, blknum: u32) -> BTreeIter<'iter, K, V> {
         if let Ok(iter) = self.try_iter_from_block(blknum) {
             iter
         } else {
-            BTreeIter::<'iter, 'storage, K, V> {
+            BTreeIter::<'iter, K, V> {
                 btree: self,
                 nd: NodeDescriptor {
                     ndFLink:   0,

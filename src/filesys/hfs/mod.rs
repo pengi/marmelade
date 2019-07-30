@@ -18,16 +18,17 @@ use blockaccess::BlockAccess;
 use catalog::Catalog;
 
 #[derive(Debug)]
-pub struct HfsImage<'storage>
+pub struct HfsImage
 {
-    storage: BlockAccess<'storage>,
+    storage: BlockAccess,
     mdb: MDB,
-    pub catalog: Catalog<'storage>
+    pub catalog: Catalog
 }
 
-impl<'storage> HfsImage<'storage>
+impl HfsImage
 {
-    pub fn from(storage: &'storage mut dyn FileAccess) -> io::Result<HfsImage> {
+    pub fn from(storage: Box<FileAccess>) -> io::Result<HfsImage> {
+        let mut storage = storage;
         // let size = storage.size()?;
 
         // Bootstrap with getting header, to get block size information
