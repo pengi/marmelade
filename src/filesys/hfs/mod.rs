@@ -156,4 +156,11 @@ impl<'img> HfsObjRef<'img> {
             None
         }
     }
+
+    pub fn get_size(&self) -> (u32, u32) {
+        match self {
+            HfsObjRef::FileRef(fr) => (fr.fr.filLgLen, fr.fr.filRLgLen),
+            HfsObjRef::DirRef(_dr) => (0, 0)
+        }
+    }
 }

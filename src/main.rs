@@ -37,7 +37,8 @@ fn print_files(dir: HfsDirIter, indent: usize) {
             print_files(obj.open_dir().unwrap(), indent+1);
         }
         if obj.is_file() {
-            println!("{}{:?}", indstr, obj.get_name());
+            let (data_size, rsrc_size) = obj.get_size();
+            println!("{}{:?} (size: {}/{})", indstr, obj.get_name(), data_size, rsrc_size);
         }
     }
 }
