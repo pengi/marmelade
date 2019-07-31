@@ -3,6 +3,7 @@ mod blockaccess;
 mod btree;
 mod catalog;
 mod disk;
+mod fileio;
 
 use std::io;
 
@@ -26,6 +27,8 @@ use catalog::{
     Catalog,
     CatalogIterator
 };
+
+pub use fileio::FileIO;
 
 #[derive(Debug)]
 pub struct HfsImage
@@ -137,6 +140,22 @@ impl<'img> HfsFileRef<'img> {
 
     pub fn get_size(&self) -> (u32, u32) {
         (self.fr.filLgLen, self.fr.filRLgLen)
+    }
+
+    pub fn open(&self) -> FileIO {
+        FileIO::open(
+            self.img.storage.clone(),
+            self.fr.filLgLen as u64,
+            self.fr.filExtRec.clone()
+        )
+    }
+
+    pub fn open_rsrc(&self) -> FileIO {
+        FileIO::open(
+            self.img.storage.clone(),
+            self.fr.filRLgLen as u64,
+            self.fr.filRExtRec.clone()
+        )
     }
 }
 

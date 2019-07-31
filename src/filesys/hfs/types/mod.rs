@@ -124,6 +124,11 @@ impl FileReader {
         let inner = self.block.get_ref();
         FileReader::from(Vec::from(&inner[offset as usize..(offset+len) as usize]))
     }
+
+    #[cfg(test)]
+    pub fn to_vec(self) -> Vec<u8> {
+        self.block.into_inner()
+    }
 }
 
 impl std::fmt::Debug for FileReader {

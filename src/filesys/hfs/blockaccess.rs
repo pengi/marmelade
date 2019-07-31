@@ -5,7 +5,10 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use std::convert::From;
-use super::types::common::ExtDataRec;
+use super::types::common::{
+    ExtDataRec,
+    ExtDescriptor
+};
 
 #[derive(Debug)]
 #[derive(Clone)]
@@ -24,10 +27,16 @@ impl BlockAccess {
         }
     }
 
-    fn do_read_blk(&self, offset: u64, len: u64) -> std::io::Result<FileReader> {
+    fn do_read_blk(&self, offset: u64, len: u64) -> std::io::Result<Vec<u8>> {
         let mut storage = self.storage.borrow_mut();
         storage.seek(offset)?;
-        Ok(FileReader::from(storage.read(len)?))
+        storage.read(len)
+    }
+
+    fn do_read_extdescriptor(&self, descr: &ExtDescriptor, offset: u64, len: u64) -> std::io::Result<Vec<u8>> {
+        self.do_read_blk(
+            self.alblk_start + (descr.xdrStABN as u64) * self.alblk_size + offset,
+            len)
     }
 
     // pub fn read_blk(&self, blknum : u64) -> std::io::Result<FileReader> {
@@ -39,9 +48,137 @@ impl BlockAccess {
     // }
 
     pub fn read_extdatarec(&self, rec : &ExtDataRec, offset : u64, len : u64) -> std::io::Result<FileReader> {
-        // TODO: Support multiple extents
-        self.do_read_blk(
-            self.alblk_start + (rec.0[0].xdrStABN as u64) * self.alblk_size + offset,
-            len)
+        let mut left_offset = offset;
+        let mut left_len = len;
+        let mut output : Vec<u8> = Vec::with_capacity(len as usize); 
+
+        for rec in rec.0.iter() {
+            let rec_size = rec.xdrNumABlks as u64 * self.alblk_size;
+
+            if left_offset >= rec_size {
+                // Starts after block, skip
+                left_offset -= rec_size;
+            } else if left_offset+left_len > rec_size {
+                // Overlaps end, skip
+                let take_len = rec_size - left_offset;
+                output.extend(self.do_read_extdescriptor(rec, left_offset, take_len)?);
+
+                left_len -= take_len;
+                left_offset = 0;
+            } else {
+                // Contains in block, use and break
+                output.extend(self.do_read_extdescriptor(rec, left_offset, left_len)?);
+
+                break;
+            }
+        }
+
+        Ok(FileReader::from(output))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{
+        DiskAccess,
+        BlockAccess,
+        ExtDataRec,
+        ExtDescriptor,
+        RefCell,
+        Rc
+    };
+
+    #[derive(Debug)]
+    struct MockDisk {
+        pos : u64,
+        size : u64
+    }
+
+    impl DiskAccess for MockDisk {
+        fn seek(&mut self, pos : u64) -> std::io::Result<u64> {
+            if pos >= self.size {
+                Err(std::io::Error::from(std::io::ErrorKind::UnexpectedEof))
+            } else {
+                self.pos = pos;
+                Ok(self.pos)
+            }
+        }
+        fn size(&mut self) -> std::io::Result<u64> {
+            Ok(self.size)
+        }
+        fn pos(&mut self) -> std::io::Result<u64> {
+            Ok(self.pos)
+        }
+        fn read(&mut self, len : u64) -> std::io::Result<Vec<u8>> {
+            if self.pos + len >= self.size {
+                Err(std::io::Error::from(std::io::ErrorKind::UnexpectedEof))
+            } else {
+                let output = (self.pos as u8..(self.pos + len) as u8).collect();
+                self.pos += len;
+                Ok(output)
+            }
+        }
+    }
+
+    fn mock_ba(size : u64, blocksize : u64) -> BlockAccess {
+        BlockAccess {
+            storage: Rc::new(RefCell::new(Box::new(MockDisk {
+                pos: 0,
+                size: size
+            }))),
+            alblk_size: blocksize,
+            alblk_start: 0
+        }
+    }
+
+    #[test]
+    fn read_ext_single_block() -> std::io::Result<()> {
+        let ba = mock_ba(50,8);
+        println!("{:#?}", ba);
+
+        let datarec = ExtDataRec ([
+            ExtDescriptor { xdrStABN: 1, xdrNumABlks: 1 },
+            ExtDescriptor { xdrStABN: 0, xdrNumABlks: 0 },
+            ExtDescriptor { xdrStABN: 0, xdrNumABlks: 0 },
+        ]);
+        assert_eq!(
+            ba.read_extdatarec(&datarec, 0, 8)?.to_vec(),
+            [8,9,10,11,12,13,14,15]
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn read_ext_multi_block_offset() -> std::io::Result<()> {
+        let ba = mock_ba(50,4);
+        println!("{:#?}", ba);
+
+        let datarec = ExtDataRec ([
+            ExtDescriptor { xdrStABN: 2, xdrNumABlks: 3 },
+            ExtDescriptor { xdrStABN: 0, xdrNumABlks: 0 },
+            ExtDescriptor { xdrStABN: 0, xdrNumABlks: 0 },
+        ]);
+        assert_eq!(
+            ba.read_extdatarec(&datarec, 2, 8)?.to_vec(),
+            [10,11,12,13,14,15,16,17]
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn read_ext_no_continous_block() -> std::io::Result<()> {
+        let ba = mock_ba(50,4);
+        println!("{:#?}", ba);
+
+        let datarec = ExtDataRec ([
+            ExtDescriptor { xdrStABN: 1, xdrNumABlks: 1 },
+            ExtDescriptor { xdrStABN: 0, xdrNumABlks: 1 },
+            ExtDescriptor { xdrStABN: 2, xdrNumABlks: 1 },
+        ]);
+        assert_eq!(
+            ba.read_extdatarec(&datarec, 2, 8)?.to_vec(),
+            [6,7,0,1,2,3,8,9]
+        );
+        Ok(())
     }
 }
