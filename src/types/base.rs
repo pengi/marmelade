@@ -27,16 +27,9 @@ impl std::fmt::Display for OSType {
     }
 }
 
-impl From<&str> for OSType {
-    fn from(s: &str) -> OSType {
-        let bytes = s.as_bytes();
-        assert_eq!(bytes.len(), 4);
-        OSType([
-            bytes[0] as u8,
-            bytes[1] as u8,
-            bytes[2] as u8,
-            bytes[3] as u8
-        ])
+impl From<&[u8; 4]> for OSType {
+    fn from(b: &[u8; 4]) -> OSType {
+        OSType(b.clone())
     }
 }
 

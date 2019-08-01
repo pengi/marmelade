@@ -57,7 +57,7 @@ fn open_file(fs: &hfs::HfsImage, filename: &str, use_rsrc: bool) -> std::io::Res
                 let rsrc_adaptor = SerialAdaptor::new(content);
                 let mut rsrc = Rsrc::new(rsrc_adaptor)?;
                 println!("Content: {:#?}", rsrc);
-                if let Ok(mut storage) = rsrc.open(OSType::from("ICN#"), 128) {
+                if let Ok(mut storage) = rsrc.open(OSType::from(b"ICN#"), 128) {
                     println!("Icon:");
                     icon_render(&mut storage);
                 }
