@@ -6,6 +6,7 @@ use std::io::{
     SeekFrom
 };
 
+
 pub trait SerialRead : std::marker::Sized {
     fn read( rdr : &mut SerialReadStorage ) -> std::io::Result<Self>;
 }
@@ -70,6 +71,10 @@ impl SerialReadStorage {
         self.block.get_mut().extend(chain.block.into_inner());
     }
 
+    pub fn pos(&self) -> u64 {
+        self.block.position()
+    }
+
 
     pub fn seek(&mut self, offset : u64) {
         self.block.seek(SeekFrom::Start(offset as u64)).unwrap();
@@ -114,6 +119,15 @@ impl SerialReadStorage {
     pub fn read_i16(&mut self) -> std::io::Result<i16> {
         self.block.read_i16::<BigEndian>()
     }
+
+    // Note that this is not
+    pub fn read_u24(&mut self) -> std::io::Result<u32> {
+        self.block.read_u24::<BigEndian>()
+    }
+    pub fn read_i24(&mut self) -> std::io::Result<i32> {
+        self.block.read_i24::<BigEndian>()
+    }
+
     pub fn read_u32(&mut self) -> std::io::Result<u32> {
         self.block.read_u32::<BigEndian>()
     }
