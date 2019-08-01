@@ -1,14 +1,23 @@
 #[macro_use]
 extern crate clap;
 
-use marmelade::serialization::SerialAdaptor;
-use marmelade::filesys::hfs::{
-    self,
-    HfsObjRef,
-    HfsDirIter
-};
-use marmelade::filesys::rsrc::{
-    Rsrc
+use marmelade::{
+    serialization::{
+        SerialAdaptor,
+        SerialReadStorage,
+        SerialRead
+    },
+    filesys::hfs::{
+        self,
+        HfsObjRef,
+        HfsDirIter
+    },
+    filesys::rsrc::{
+        Rsrc
+    },
+    types::{
+        OSType
+    }
 };
 
 use std::io::Read;
@@ -46,8 +55,12 @@ fn open_file(fs: &hfs::HfsImage, filename: &str, use_rsrc: bool) -> std::io::Res
             if use_rsrc {
                 let content = file.open_rsrc();
                 let rsrc_adaptor = SerialAdaptor::new(content);
-                let rsrc = Rsrc::new(rsrc_adaptor)?;
+                let mut rsrc = Rsrc::new(rsrc_adaptor)?;
                 println!("Content: {:#?}", rsrc);
+                if let Ok(mut storage) = rsrc.open(OSType::from("ICN#"), 128) {
+                    println!("Icon:");
+                    icon_render(&mut storage);
+                }
             } else {
                 let mut s = String::new();
                 file.open().read_to_string(&mut s)?;
@@ -73,5 +86,26 @@ fn print_files(dir: HfsDirIter, indent: usize) {
                 print_files(dir.open(), indent+1);
             }
         }
+    }
+}
+
+
+fn icon_render(rdr: &mut SerialReadStorage) {
+    let mut bytes = [0 as u8; 256];
+    for i in 0..256 {
+        bytes[i] = u8::read(rdr).unwrap();
+    }
+
+    for y in 0..32 {
+        for x in 0..32 {
+            let pxlidx = y*32 + x;
+            let pxlbyte = pxlidx / 8;
+            let pxlbit = 1<<(7-(pxlidx%8));
+            let mask = bytes[pxlbyte+128]&pxlbit != 0;
+            let col = bytes[pxlbyte]&pxlbit != 0;
+            let chr = if !mask {'.'} else if col {'#'} else {' '};
+            print!("{}{}", chr, chr);
+        }
+        println!("");
     }
 }

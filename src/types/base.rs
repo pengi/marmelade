@@ -27,6 +27,19 @@ impl std::fmt::Display for OSType {
     }
 }
 
+impl From<&str> for OSType {
+    fn from(s: &str) -> OSType {
+        let bytes = s.as_bytes();
+        assert_eq!(bytes.len(), 4);
+        OSType([
+            bytes[0] as u8,
+            bytes[1] as u8,
+            bytes[2] as u8,
+            bytes[3] as u8
+        ])
+    }
+}
+
 #[derive(PartialEq)]
 #[derive(PartialOrd)]
 pub struct PString (Vec<u8>);

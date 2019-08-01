@@ -84,3 +84,18 @@ impl SerialRead for RsrcMap {
         })
     }
 }
+
+impl RsrcMap {
+    pub fn open(&self, rsrc_type: OSType, id: i16) -> Option<&RsrcObj> {
+        for typelist in self.types.iter() {
+            if typelist.rsrc_type == rsrc_type {
+                for obj in typelist.rsrc.iter() {
+                    if obj.id == id {
+                        return Some(&obj)
+                    }
+                }
+            }
+        }
+        None
+    }
+}
