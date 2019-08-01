@@ -1,5 +1,5 @@
 use super::DiskAccess;
-use super::types::FileReader;
+use super::types::SerialReadStorage;
 
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -39,15 +39,15 @@ impl BlockAccess {
             len)
     }
 
-    // pub fn read_blk(&self, blknum : u64) -> std::io::Result<FileReader> {
+    // pub fn read_blk(&self, blknum : u64) -> std::io::Result<SerialReadStorage> {
     //     self.do_read_blk(blknum * 512, 512)
     // }
 
-    // pub fn read_alblk(&self, blknum : u64) -> std::io::Result<FileReader> {
+    // pub fn read_alblk(&self, blknum : u64) -> std::io::Result<SerialReadStorage> {
     //     self.do_read_blk(self.alblk_start + blknum * self.alblk_size, self.alblk_size)
     // }
 
-    pub fn read_extdatarec(&self, rec : &ExtDataRec, offset : u64, len : u64) -> std::io::Result<FileReader> {
+    pub fn read_extdatarec(&self, rec : &ExtDataRec, offset : u64, len : u64) -> std::io::Result<SerialReadStorage> {
         let mut left_offset = offset;
         let mut left_len = len;
         let mut output : Vec<u8> = Vec::with_capacity(len as usize); 
@@ -73,7 +73,7 @@ impl BlockAccess {
             }
         }
 
-        Ok(FileReader::from(output))
+        Ok(SerialReadStorage::from(output))
     }
 }
 

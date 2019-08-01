@@ -22,7 +22,7 @@ fn format_attrs(attrs: &Vec<syn::Attribute>) -> TokenStream2 {
 fn reader_for_field(f : &syn::Field) -> TokenStream2 {
     let attr_mod = format_attrs(&f.attrs);
     if let syn::Type::Array(arr) = &f.ty {
-        let mut reader = quote!{FileReadable::read(rdr#attr_mod)?,};
+        let mut reader = quote!{SerialRead::read(rdr#attr_mod)?,};
         let len = if let syn::Expr::Lit(lit) = &arr.len {
             match &lit.lit {
                 syn::Lit::Int(i) => i.value(),
@@ -32,15 +32,15 @@ fn reader_for_field(f : &syn::Field) -> TokenStream2 {
             unimplemented!();
         };
         for _ in 1..len {
-            reader.extend(quote!{FileReadable::read(rdr)?,});
+            reader.extend(quote!{SerialRead::read(rdr)?,});
         }
         quote! {[#reader]}
     } else {
-        quote! {FileReadable::read(rdr#attr_mod)?}
+        quote! {SerialRead::read(rdr#attr_mod)?}
     }
 }
 
-#[proc_macro_derive(FileReadable, attributes(length_start, length_end, align, pad))]
+#[proc_macro_derive(SerialRead, attributes(length_start, length_end, align, pad))]
 pub fn file_readable(input: TokenStream) -> TokenStream {
     let ast : syn::DeriveInput = syn::parse(input).unwrap();
     
@@ -84,8 +84,8 @@ pub fn file_readable(input: TokenStream) -> TokenStream {
     };
 
     let gen = quote! {
-        impl FileReadable for #name {
-            fn read( rdr : &mut FileReader ) -> std::io::Result<#name> {
+        impl SerialRead for #name {
+            fn read( rdr : &mut SerialReadStorage ) -> std::io::Result<#name> {
                 #read_func
             }
         }

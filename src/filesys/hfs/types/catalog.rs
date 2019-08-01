@@ -1,6 +1,6 @@
 use super::{
-    FileReader,
-    FileReadable,
+    SerialReadStorage,
+    SerialRead,
     common::{
         PString,
         DateTime,
@@ -9,7 +9,7 @@ use super::{
 };
 
 #[derive(PartialEq)]
-#[derive(FileReadable)]
+#[derive(SerialRead)]
 pub struct OSType ([u8;4]);
 
 impl std::fmt::Debug for OSType {
@@ -34,7 +34,7 @@ impl std::fmt::Display for OSType {
     }
 }
 
-#[derive(FileReadable)]
+#[derive(SerialRead)]
 #[derive(Debug)]
 #[allow(non_snake_case)] // This struct comes from old Mac structs
 pub struct Point {
@@ -42,7 +42,7 @@ pub struct Point {
    h: i16  // INTEGER;     {horizontal  coordinate}
 }
 
-#[derive(FileReadable)]
+#[derive(SerialRead)]
 #[derive(Debug)]
 #[allow(non_snake_case)] // This struct comes from old Mac structs
 pub struct Rect {
@@ -50,7 +50,7 @@ pub struct Rect {
    botRight: Point,
 }
 
-#[derive(FileReadable)]
+#[derive(SerialRead)]
 #[derive(Debug)]
 #[allow(non_snake_case)] // This struct comes from old Mac structs
 pub struct FInfo {
@@ -61,7 +61,7 @@ pub struct FInfo {
     fdFldr:     u16, // Integer;    {directory that contains file}
 }
 
-#[derive(FileReadable)]
+#[derive(SerialRead)]
 #[derive(Debug)]
 #[allow(non_snake_case)] // This struct comes from old Mac structs
 pub struct FXInfo {
@@ -74,7 +74,7 @@ pub struct FXInfo {
 }
 
 // TODO: Reverse engineered
-#[derive(FileReadable)]
+#[derive(SerialRead)]
 #[derive(Debug)]
 #[allow(non_snake_case)] // This struct comes from old Mac structs
 pub struct DInfo {
@@ -84,7 +84,7 @@ pub struct DInfo {
     frView:     u16,   // Integer; {folder's view}
 }
 
-#[derive(FileReadable)]
+#[derive(SerialRead)]
 #[derive(Debug)]
 #[allow(non_snake_case)] // This struct comes from old Mac structs
 pub struct DXInfo {
@@ -98,7 +98,7 @@ pub struct DXInfo {
 
 #[derive(PartialOrd)]
 #[derive(PartialEq)]
-#[derive(FileReadable)]
+#[derive(SerialRead)]
 #[derive(Debug)]
 #[allow(non_snake_case)] // This struct comes from old Mac structs
 pub struct CatKeyRec {
@@ -108,7 +108,7 @@ pub struct CatKeyRec {
     pub ckrCName : PString,
 }
 
-#[derive(FileReadable)]
+#[derive(SerialRead)]
 #[derive(Debug)]
 #[allow(non_snake_case)] // This struct comes from old Mac structs
 pub struct CdrDirRec {
@@ -123,7 +123,7 @@ pub struct CdrDirRec {
    pub dirResrv:      [u32; 4] // ARRAY[1..4] OF LongInt {reserved}
 }
 
-#[derive(FileReadable)]
+#[derive(SerialRead)]
 #[derive(Debug)]
 #[allow(non_snake_case)] // This struct comes from old Mac structs
 pub struct CdrFilRec {
@@ -147,7 +147,7 @@ pub struct CdrFilRec {
    pub filResrv:      u32, // LongInt     {reserved}
 }
 
-#[derive(FileReadable)]
+#[derive(SerialRead)]
 #[derive(Debug)]
 #[allow(non_snake_case)] // This struct comes from old Mac structs
 pub struct CdrThdRec {
@@ -160,7 +160,7 @@ pub struct CdrThdRec {
 // in Inside Macintosh. Reuse CdrThdRec for simplicity, but keep CdrFThdRec for
 // reference
 //
-// #[derive(FileReadable)]
+// #[derive(SerialRead)]
 // #[derive(Debug)]
 // #[allow(non_snake_case)] // This struct comes from old Mac structs
 // pub struct CdrFThdRec {
@@ -179,15 +179,15 @@ pub enum CatDataRec {
 }
 
 #[derive(Debug)]
-#[derive(FileReadable)]
+#[derive(SerialRead)]
 #[allow(non_snake_case)]
 struct CatDataRecHeader {
    cdrType:       i8, // SignedByte; {record type}
    cdrResrv2:     i8, // SignedByte; {reserved}
 }
 
-impl FileReadable for CatDataRec {
-    fn read(rdr : &mut FileReader) -> std::io::Result<CatDataRec> {
+impl SerialRead for CatDataRec {
+    fn read(rdr : &mut SerialReadStorage) -> std::io::Result<CatDataRec> {
         let header = CatDataRecHeader::read(rdr)?;
         Ok(match header.cdrType {
             1 => CatDataRec::CdrDirRec(CdrDirRec::read(rdr)?),

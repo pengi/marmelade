@@ -1,4 +1,4 @@
-use super::{FileReader, FileReadable};
+use super::{SerialReadStorage, SerialRead};
 use chrono::NaiveDateTime;
 
 #[derive(PartialEq)]
@@ -19,12 +19,12 @@ impl std::fmt::Display for PString {
     }
 }
 
-impl FileReadable for PString {
-    fn read(rdr : &mut FileReader ) -> std::io::Result<PString> {
-        let len : u8 = FileReadable::read(rdr)?;
+impl SerialRead for PString {
+    fn read(rdr : &mut SerialReadStorage ) -> std::io::Result<PString> {
+        let len : u8 = SerialRead::read(rdr)?;
         let mut data = Vec::with_capacity(len as usize);
         for _ in 0..len {
-            let val : u8 = FileReadable::read(rdr)?;
+            let val : u8 = SerialRead::read(rdr)?;
             data.push(val)
         }
         Ok(PString (
@@ -48,16 +48,16 @@ impl From<&PString> for String {
 #[derive(Debug)]
 pub struct DateTime (NaiveDateTime);
 
-impl FileReadable for DateTime {
-    fn read(rdr:&mut FileReader) -> std::io::Result<DateTime> {
-        let val : u32 = FileReadable::read(rdr)?;
+impl SerialRead for DateTime {
+    fn read(rdr:&mut SerialReadStorage) -> std::io::Result<DateTime> {
+        let val : u32 = SerialRead::read(rdr)?;
         Ok( DateTime (NaiveDateTime::from_timestamp(val as i64 - 2082844800i64, 0)))
     }
 }
 
 #[derive(Debug)]
 #[derive(Clone)]
-#[derive(FileReadable)]
+#[derive(SerialRead)]
 #[allow(non_snake_case)] // This struct comes from old Mac structs
 pub struct ExtDescriptor {
     pub xdrStABN: u16,    // first allocation block
@@ -66,7 +66,7 @@ pub struct ExtDescriptor {
 
 #[derive(Debug)]
 #[derive(Clone)]
-#[derive(FileReadable)]
+#[derive(SerialRead)]
 #[allow(non_snake_case)] // This struct comes from old Mac structs
 pub struct ExtDataRec(
     pub [ExtDescriptor; 3]

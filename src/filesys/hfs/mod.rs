@@ -11,8 +11,8 @@ use disk::DiskAccess;
 pub use disk::DiskAdaptor;
 
 use types::{
-    FileReader,
-    FileReadable,
+    SerialReadStorage,
+    SerialRead,
     mdb::MDB,
     catalog::{
         CatDataRec,
@@ -46,7 +46,7 @@ impl HfsImage
 
         // Bootstrap with getting header, to get block size information
         storage.seek(2*512)?;
-        let mut mdb_block : FileReader = FileReader::from(storage.read(512)?);
+        let mut mdb_block : SerialReadStorage = SerialReadStorage::from(storage.read(512)?);
         let mdb = MDB::read(&mut mdb_block)?;
 
         // Set up block access

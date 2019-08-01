@@ -10,55 +10,55 @@ use std::io::{
     SeekFrom
 };
 
-pub trait FileReadable : std::marker::Sized {
-    fn read( rdr : &mut FileReader ) -> std::io::Result<Self>;
+pub trait SerialRead : std::marker::Sized {
+    fn read( rdr : &mut SerialReadStorage ) -> std::io::Result<Self>;
 }
 
-impl FileReadable for u8 {
-    fn read( rdr : &mut FileReader ) -> std::io::Result<Self> {
+impl SerialRead for u8 {
+    fn read( rdr : &mut SerialReadStorage ) -> std::io::Result<Self> {
         rdr.read_u8()
     }
 }
 
-impl FileReadable for i8 {
-    fn read( rdr : &mut FileReader ) -> std::io::Result<Self> {
+impl SerialRead for i8 {
+    fn read( rdr : &mut SerialReadStorage ) -> std::io::Result<Self> {
         rdr.read_i8()
     }
 }
 
-impl FileReadable for u16 {
-    fn read( rdr : &mut FileReader ) -> std::io::Result<Self> {
+impl SerialRead for u16 {
+    fn read( rdr : &mut SerialReadStorage ) -> std::io::Result<Self> {
         rdr.read_u16()
     }
 }
 
-impl FileReadable for i16 {
-    fn read( rdr : &mut FileReader ) -> std::io::Result<Self> {
+impl SerialRead for i16 {
+    fn read( rdr : &mut SerialReadStorage ) -> std::io::Result<Self> {
         rdr.read_i16()
     }
 }
 
-impl FileReadable for u32 {
-    fn read( rdr : &mut FileReader ) -> std::io::Result<Self> {
+impl SerialRead for u32 {
+    fn read( rdr : &mut SerialReadStorage ) -> std::io::Result<Self> {
         rdr.read_u32()
     }
 }
 
-impl FileReadable for i32 {
-    fn read( rdr : &mut FileReader ) -> std::io::Result<Self> {
+impl SerialRead for i32 {
+    fn read( rdr : &mut SerialReadStorage ) -> std::io::Result<Self> {
         rdr.read_i32()
     }
 }
 
 
-pub struct FileReader {
+pub struct SerialReadStorage {
     block : Cursor<Vec<u8>>,
     len_stack : Vec<u64>
 }
 
-impl From<Vec<u8>> for FileReader {
-    fn from(vec : Vec<u8>) -> FileReader {
-        FileReader {
+impl From<Vec<u8>> for SerialReadStorage {
+    fn from(vec : Vec<u8>) -> SerialReadStorage {
+        SerialReadStorage {
             block: Cursor::new(vec),
             len_stack: vec![]
         }
@@ -69,7 +69,7 @@ fn pad_to_wordlen(len: u64, wordlen: u64) -> u64 {
     len + ((wordlen - 1) ^ ((len + wordlen - 1) & (wordlen - 1)))
 }
 
-impl FileReader {
+impl SerialReadStorage {
     pub fn seek(&mut self, offset : u64) {
         self.block.seek(SeekFrom::Start(offset as u64)).unwrap();
     }
@@ -120,9 +120,9 @@ impl FileReader {
         self.block.read_i32::<BigEndian>()
     }
 
-    pub fn sub_reader(&self, offset : u64, len : u64) -> FileReader {
+    pub fn sub_reader(&self, offset : u64, len : u64) -> SerialReadStorage {
         let inner = self.block.get_ref();
-        FileReader::from(Vec::from(&inner[offset as usize..(offset+len) as usize]))
+        SerialReadStorage::from(Vec::from(&inner[offset as usize..(offset+len) as usize]))
     }
 
     #[cfg(test)]
@@ -131,7 +131,7 @@ impl FileReader {
     }
 }
 
-impl std::fmt::Debug for FileReader {
+impl std::fmt::Debug for SerialReadStorage {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let inner = self.block.get_ref();
         let len = inner.len() as usize;
@@ -154,7 +154,7 @@ impl std::fmt::Debug for FileReader {
 
 #[cfg(test)]
 mod tests {
-    use super::{FileReader, FileReadable};
+    use super::{SerialReadStorage, SerialRead};
 
     use super::pad_to_wordlen;
     #[test]
@@ -182,7 +182,7 @@ mod tests {
         assert_eq!(8, pad_to_wordlen(8, 4));
     }
 
-    #[derive(FileReadable)]
+    #[derive(SerialRead)]
     #[derive(PartialEq)]
     #[derive(Debug)]
     struct TestStruct {
@@ -195,8 +195,8 @@ mod tests {
 
     #[test]
     fn read_struct() {
-        let mut rdr = FileReader::from(vec![1,2,3,4,5,6,7]);
-        let actual : TestStruct = FileReadable::read(&mut rdr).unwrap();
+        let mut rdr = SerialReadStorage::from(vec![1,2,3,4,5,6,7]);
+        let actual : TestStruct = SerialRead::read(&mut rdr).unwrap();
         assert_eq!(
             actual,
             TestStruct {
@@ -209,9 +209,9 @@ mod tests {
 
     #[test]
     fn read_seq() {
-        let mut rdr = FileReader::from(vec![1,2,3,4,5,6,7,2,2,3,4,5,6,7]);
+        let mut rdr = SerialReadStorage::from(vec![1,2,3,4,5,6,7,2,2,3,4,5,6,7]);
         
-        let actual : TestStruct = FileReadable::read(&mut rdr).unwrap();
+        let actual : TestStruct = SerialRead::read(&mut rdr).unwrap();
         assert_eq!(
             actual,
             TestStruct {
@@ -221,7 +221,7 @@ mod tests {
             }
         );
         
-        let actual : TestStruct = FileReadable::read(&mut rdr).unwrap();
+        let actual : TestStruct = SerialRead::read(&mut rdr).unwrap();
         assert_eq!(
             actual,
             TestStruct {
@@ -232,7 +232,7 @@ mod tests {
         );
     }
 
-    #[derive(FileReadable)]
+    #[derive(SerialRead)]
     #[derive(PartialEq)]
     #[derive(Debug)]
     struct TestSuperStruct {
@@ -242,9 +242,9 @@ mod tests {
 
     #[test]
     fn read_recursive() {
-        let mut rdr = FileReader::from(vec![1,2,3,4,5,6,7,2,2,3,4,5,6,7]);
+        let mut rdr = SerialReadStorage::from(vec![1,2,3,4,5,6,7,2,2,3,4,5,6,7]);
         
-        let actual : TestSuperStruct = FileReadable::read(&mut rdr).unwrap();
+        let actual : TestSuperStruct = SerialRead::read(&mut rdr).unwrap();
         assert_eq!(
             actual,
             TestSuperStruct {
@@ -263,7 +263,7 @@ mod tests {
     }
 
 
-    #[derive(FileReadable)]
+    #[derive(SerialRead)]
     #[derive(PartialEq)]
     #[derive(Debug)]
     struct TestSized {
@@ -276,8 +276,8 @@ mod tests {
 
     #[test]
     fn read_sized() {
-        let mut rdr = FileReader::from(vec![1,2,3,4,5]);
-        let actual : TestSized = FileReadable::read(&mut rdr).unwrap();
+        let mut rdr = SerialReadStorage::from(vec![1,2,3,4,5]);
+        let actual : TestSized = SerialRead::read(&mut rdr).unwrap();
         assert_eq!(
             actual,
             TestSized {

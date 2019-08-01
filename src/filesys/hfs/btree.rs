@@ -1,6 +1,6 @@
 use super::{
     blockaccess::BlockAccess,
-    types::{btree::BTHdrRec, btree::NodeDescriptor, common::ExtDataRec, FileReadable, FileReader},
+    types::{btree::BTHdrRec, btree::NodeDescriptor, common::ExtDataRec, SerialRead, SerialReadStorage},
 };
 
 use std::marker::PhantomData;
@@ -8,15 +8,15 @@ use std::marker::PhantomData;
 #[derive(Debug)]
 struct BTreeNode {
     nd: NodeDescriptor,
-    recs: Vec<FileReader>,
+    recs: Vec<SerialReadStorage>,
 }
 
 impl BTreeNode {
-    pub fn new(rdr: &mut FileReader) -> std::io::Result<BTreeNode> {
+    pub fn new(rdr: &mut SerialReadStorage) -> std::io::Result<BTreeNode> {
         rdr.seek(0);
 
         let nd = NodeDescriptor::read(rdr)?;
-        let mut recs: Vec<FileReader> = Vec::with_capacity(nd.ndNRecs as usize);
+        let mut recs: Vec<SerialReadStorage> = Vec::with_capacity(nd.ndNRecs as usize);
 
         let size = rdr.size();
 
@@ -34,14 +34,14 @@ impl BTreeNode {
 #[cfg(test)]
 mod tests {
     use super::{
-        FileReader,
-        FileReadable,
+        SerialReadStorage,
+        SerialRead,
         BTreeNode
     };
 
     #[test]
     fn unpack_tree_node() {
-        let mut rdr = FileReader::from(vec![
+        let mut rdr = SerialReadStorage::from(vec![
             0,0,1,0, // nd.ndFLink
             0,0,2,0, // nd.ndBLink
             12, // nd.ndType
@@ -82,7 +82,7 @@ pub struct BTreeHeaderNode {
 }
 
 impl BTreeHeaderNode {
-    pub fn new(rdr: &mut FileReader) -> std::io::Result<BTreeHeaderNode> {
+    pub fn new(rdr: &mut SerialReadStorage) -> std::io::Result<BTreeHeaderNode> {
         Ok(BTreeHeaderNode::from(BTreeNode::new(rdr)?))
     }
 }
@@ -106,8 +106,8 @@ impl From<BTreeNode> for BTreeHeaderNode {
 #[derive(Debug)]
 pub struct BTreeLeafNode<K, V>
 where
-    K: FileReadable + PartialOrd + std::fmt::Debug,
-    V: FileReadable + std::fmt::Debug
+    K: SerialRead + PartialOrd + std::fmt::Debug,
+    V: SerialRead + std::fmt::Debug
 {
     nd: NodeDescriptor,
     recs: Vec<(K, V)>,
@@ -115,18 +115,18 @@ where
 
 impl<K, V> BTreeLeafNode<K, V>
 where
-    K: FileReadable + PartialOrd + std::fmt::Debug,
-    V: FileReadable + std::fmt::Debug
+    K: SerialRead + PartialOrd + std::fmt::Debug,
+    V: SerialRead + std::fmt::Debug
 {
-    pub fn new(rdr: &mut FileReader) -> std::io::Result<BTreeLeafNode<K, V>> {
+    pub fn new(rdr: &mut SerialReadStorage) -> std::io::Result<BTreeLeafNode<K, V>> {
         Ok(BTreeLeafNode::from(BTreeNode::new(rdr)?))
     }
 }
 
 impl<K, V> From<BTreeNode> for BTreeLeafNode<K, V>
 where
-    K: FileReadable + PartialOrd + std::fmt::Debug,
-    V: FileReadable + std::fmt::Debug
+    K: SerialRead + PartialOrd + std::fmt::Debug,
+    V: SerialRead + std::fmt::Debug
 {
     fn from(node: BTreeNode) -> BTreeLeafNode<K, V> {
         assert_eq!(node.nd.ndType, -1i8);
@@ -148,8 +148,8 @@ where
 
 pub struct BTreeIter<'iter, K, V>
 where
-    K: FileReadable + PartialOrd + std::fmt::Debug,
-    V: FileReadable + std::fmt::Debug
+    K: SerialRead + PartialOrd + std::fmt::Debug,
+    V: SerialRead + std::fmt::Debug
 {
     btree: &'iter BTree<K, V>,
     nd: NodeDescriptor,
@@ -158,8 +158,8 @@ where
 
 impl<'iter, K, V> std::iter::Iterator for BTreeIter<'iter, K, V>
 where
-    K: FileReadable + PartialOrd + std::fmt::Debug,
-    V: FileReadable + std::fmt::Debug
+    K: SerialRead + PartialOrd + std::fmt::Debug,
+    V: SerialRead + std::fmt::Debug
 {
     type Item = (K, V);
 
@@ -182,8 +182,8 @@ where
 #[derive(Debug)]
 pub struct BTree<K, V>
 where
-    K: FileReadable + PartialOrd + std::fmt::Debug,
-    V: FileReadable + std::fmt::Debug
+    K: SerialRead + PartialOrd + std::fmt::Debug,
+    V: SerialRead + std::fmt::Debug
 {
     storage: BlockAccess,
     datarec: ExtDataRec,
@@ -195,8 +195,8 @@ where
 
 impl<K, V> BTree<K, V>
 where
-    K: FileReadable + PartialOrd + std::fmt::Debug,
-    V: FileReadable + std::fmt::Debug
+    K: SerialRead + PartialOrd + std::fmt::Debug,
+    V: SerialRead + std::fmt::Debug
 {
     pub fn new(
         storage: &BlockAccess,

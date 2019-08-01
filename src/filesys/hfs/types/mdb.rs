@@ -1,4 +1,4 @@
-use super::{FileReader, FileReadable};
+use super::{SerialReadStorage, SerialRead};
 use super::common::{
     PString,
     DateTime,
@@ -6,7 +6,7 @@ use super::common::{
 };
 
 #[derive(Debug)]
-#[derive(FileReadable)]
+#[derive(SerialRead)]
 #[allow(non_snake_case)] // This struct comes from old Mac structs
 pub struct MDB {
     pub drSigWord: i16,         //Integer,    // volume signature

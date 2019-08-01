@@ -1,7 +1,7 @@
-use super::{FileReader, FileReadable};
+use super::{SerialReadStorage, SerialRead};
 
 #[derive(Debug)]
-#[derive(FileReadable)]
+#[derive(SerialRead)]
 #[allow(non_snake_case)] // This struct comes from old Mac structs
 pub struct NodeDescriptor {
     pub ndFLink:       u32, //LongInt;       {forward link}
@@ -14,7 +14,7 @@ pub struct NodeDescriptor {
 
 
 #[derive(Debug)]
-#[derive(FileReadable)]
+#[derive(SerialRead)]
 #[allow(non_snake_case)] // This struct comes from old Mac structs
 pub struct BTHdrRec {
    pub bthDepth:      u16, //Integer;    {current depth of tree}
