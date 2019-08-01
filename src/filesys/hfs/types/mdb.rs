@@ -1,8 +1,11 @@
 use crate::serialread::{SerialReadStorage, SerialRead};
 
-use super::common::{
+use crate::types::{
     PString,
-    DateTime,
+    DateTime
+};
+
+use super::common::{
     ExtDataRec
 };
 

@@ -1,35 +1,14 @@
 use crate::serialread::{SerialReadStorage, SerialRead};
-use super::common::{
+
+use crate::types::{
     PString,
     DateTime,
-    ExtDataRec
+    OSType
 };
 
-#[derive(PartialEq)]
-#[derive(SerialRead)]
-pub struct OSType ([u8;4]);
-
-impl std::fmt::Debug for OSType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "\'{}{}{}{}\'",
-            self.0[0] as char,
-            self.0[1] as char,
-            self.0[2] as char,
-            self.0[3] as char
-        )
-    }
-}
-
-impl std::fmt::Display for OSType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "\'{}{}{}{}\'",
-            self.0[0] as char,
-            self.0[1] as char,
-            self.0[2] as char,
-            self.0[3] as char
-        )
-    }
-}
+use super::common::{
+    ExtDataRec
+};
 
 #[derive(SerialRead)]
 #[derive(Debug)]
