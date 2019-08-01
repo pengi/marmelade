@@ -1,4 +1,4 @@
-use crate::serialread::{SerialReadStorage, SerialRead};
+use crate::serialization::{SerialReadStorage, SerialRead};
 use chrono::NaiveDateTime;
 
 #[derive(PartialEq)]

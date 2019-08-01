@@ -1,9 +1,9 @@
 #[macro_use]
 extern crate clap;
 
-use marmelade::filesys::hfs;
-use marmelade::filesys::hfs::DiskAdaptor;
+use marmelade::serialization::SerialAdaptor;
 use marmelade::filesys::hfs::{
+    self,
     HfsObjRef,
     HfsDirIter
 };
@@ -22,7 +22,7 @@ fn main() {
 
     let imgfile = matches.value_of("img").unwrap();
     let img = fs::File::open(imgfile).unwrap();
-    let fa = DiskAdaptor::new(img);
+    let fa = SerialAdaptor::new(img);
     let fs = hfs::HfsImage::from(fa).unwrap();
 
     if let Some(file) = matches.value_of("file") {

@@ -66,6 +66,11 @@ fn pad_to_wordlen(len: u64, wordlen: u64) -> u64 {
 }
 
 impl SerialReadStorage {
+    pub fn extend(&mut self, chain: SerialReadStorage) {
+        self.block.get_mut().extend(chain.block.into_inner());
+    }
+
+
     pub fn seek(&mut self, offset : u64) {
         self.block.seek(SeekFrom::Start(offset as u64)).unwrap();
     }

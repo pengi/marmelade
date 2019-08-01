@@ -1,10 +1,11 @@
-use super::DiskAccess;
-use crate::serialread::SerialReadStorage;
+use crate::serialization::{
+    SerialAccess,
+    SerialReadStorage
+};
 
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use std::convert::From;
 use super::types::common::{
     ExtDataRec,
     ExtDescriptor
@@ -13,13 +14,13 @@ use super::types::common::{
 #[derive(Debug)]
 #[derive(Clone)]
 pub struct BlockAccess {
-    storage: Rc<RefCell<Box<dyn DiskAccess>>>,
+    storage: Rc<RefCell<Box<dyn SerialAccess>>>,
     alblk_start: u64,
     alblk_size: u64
 }
 
 impl BlockAccess {
-    pub fn new(storage: Box<dyn DiskAccess>, alblk_start: u64, alblk_size: u64) -> BlockAccess {
+    pub fn new(storage: Box<dyn SerialAccess>, alblk_start: u64, alblk_size: u64) -> BlockAccess {
         BlockAccess {
             storage: Rc::new(RefCell::new(storage)),
             alblk_start: alblk_start * 512,
@@ -27,13 +28,13 @@ impl BlockAccess {
         }
     }
 
-    fn do_read_blk(&self, offset: u64, len: u64) -> std::io::Result<Vec<u8>> {
+    fn do_read_blk(&self, offset: u64, len: u64) -> std::io::Result<SerialReadStorage> {
         let mut storage = self.storage.borrow_mut();
         storage.seek(offset)?;
         storage.read(len)
     }
 
-    fn do_read_extdescriptor(&self, descr: &ExtDescriptor, offset: u64, len: u64) -> std::io::Result<Vec<u8>> {
+    fn do_read_extdescriptor(&self, descr: &ExtDescriptor, offset: u64, len: u64) -> std::io::Result<SerialReadStorage> {
         self.do_read_blk(
             self.alblk_start + (descr.xdrStABN as u64) * self.alblk_size + offset,
             len)
@@ -42,7 +43,7 @@ impl BlockAccess {
     pub fn read_extdatarec(&self, rec : &ExtDataRec, offset : u64, len : u64) -> std::io::Result<SerialReadStorage> {
         let mut left_offset = offset;
         let mut left_len = len;
-        let mut output : Vec<u8> = Vec::with_capacity(len as usize); 
+        let mut output : SerialReadStorage = SerialReadStorage::from(vec![]); 
 
         for rec in rec.0.iter() {
             let rec_size = rec.xdrNumABlks as u64 * self.alblk_size;
@@ -65,14 +66,14 @@ impl BlockAccess {
             }
         }
 
-        Ok(SerialReadStorage::from(output))
+        Ok(output)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::{
-        DiskAccess,
+        SerialAccess,
         BlockAccess,
         ExtDataRec,
         ExtDescriptor,
@@ -86,7 +87,7 @@ mod tests {
         size : u64
     }
 
-    impl DiskAccess for MockDisk {
+    impl SerialAccess for MockDisk {
         fn seek(&mut self, pos : u64) -> std::io::Result<u64> {
             if pos >= self.size {
                 Err(std::io::Error::from(std::io::ErrorKind::UnexpectedEof))

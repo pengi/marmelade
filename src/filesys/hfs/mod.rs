@@ -2,15 +2,15 @@ mod types;
 mod blockaccess;
 mod btree;
 mod catalog;
-mod disk;
 mod fileio;
 
 use std::io;
 
-use disk::DiskAccess;
-pub use disk::DiskAdaptor;
-
-use crate::serialread::{SerialReadStorage, SerialRead};
+use crate::serialization::{
+    SerialAccess,
+    SerialReadStorage,
+    SerialRead
+};
 
 use types::{
     mdb::MDB,
@@ -40,7 +40,7 @@ pub struct HfsImage
 
 impl HfsImage
 {
-    pub fn from(storage: Box<dyn DiskAccess>) -> io::Result<HfsImage> {
+    pub fn from(storage: Box<dyn SerialAccess>) -> io::Result<HfsImage> {
         let mut storage = storage;
         // let size = storage.size()?;
 
