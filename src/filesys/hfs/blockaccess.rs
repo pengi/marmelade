@@ -127,7 +127,6 @@ mod tests {
     #[test]
     fn read_ext_single_block() -> std::io::Result<()> {
         let ba = mock_ba(50,8);
-        println!("{:#?}", ba);
 
         let datarec = ExtDataRec ([
             ExtDescriptor { xdrStABN: 1, xdrNumABlks: 1 },
@@ -144,7 +143,6 @@ mod tests {
     #[test]
     fn read_ext_multi_block_offset() -> std::io::Result<()> {
         let ba = mock_ba(50,4);
-        println!("{:#?}", ba);
 
         let datarec = ExtDataRec ([
             ExtDescriptor { xdrStABN: 2, xdrNumABlks: 3 },
@@ -161,7 +159,6 @@ mod tests {
     #[test]
     fn read_ext_no_continous_block() -> std::io::Result<()> {
         let ba = mock_ba(50,4);
-        println!("{:#?}", ba);
 
         let datarec = ExtDataRec ([
             ExtDescriptor { xdrStABN: 1, xdrNumABlks: 1 },
