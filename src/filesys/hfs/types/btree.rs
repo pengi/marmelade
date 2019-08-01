@@ -1,4 +1,4 @@
-use super::{SerialReadStorage, SerialRead};
+use crate::serialread::{SerialReadStorage, SerialRead};
 
 #[derive(Debug)]
 #[derive(SerialRead)]

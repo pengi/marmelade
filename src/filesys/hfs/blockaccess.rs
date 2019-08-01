@@ -1,5 +1,5 @@
 use super::DiskAccess;
-use super::types::SerialReadStorage;
+use crate::serialread::SerialReadStorage;
 
 use std::cell::RefCell;
 use std::rc::Rc;

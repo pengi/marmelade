@@ -2,3 +2,4 @@
 extern crate marmelade_derive;
 
 pub mod filesys;
+pub mod serialread;

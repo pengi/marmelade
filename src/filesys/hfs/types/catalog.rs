@@ -1,11 +1,8 @@
-use super::{
-    SerialReadStorage,
-    SerialRead,
-    common::{
-        PString,
-        DateTime,
-        ExtDataRec
-    }
+use crate::serialread::{SerialReadStorage, SerialRead};
+use super::common::{
+    PString,
+    DateTime,
+    ExtDataRec
 };
 
 #[derive(PartialEq)]

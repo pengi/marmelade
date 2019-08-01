@@ -1,4 +1,5 @@
-use super::{SerialReadStorage, SerialRead};
+use crate::serialread::{SerialReadStorage, SerialRead};
+
 use super::common::{
     PString,
     DateTime,

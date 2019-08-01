@@ -10,9 +10,9 @@ use std::io;
 use disk::DiskAccess;
 pub use disk::DiskAdaptor;
 
+use crate::serialread::{SerialReadStorage, SerialRead};
+
 use types::{
-    SerialReadStorage,
-    SerialRead,
     mdb::MDB,
     catalog::{
         CatDataRec,

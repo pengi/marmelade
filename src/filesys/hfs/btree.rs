@@ -1,6 +1,8 @@
+use crate::serialread::{SerialReadStorage, SerialRead};
+
 use super::{
     blockaccess::BlockAccess,
-    types::{btree::BTHdrRec, btree::NodeDescriptor, common::ExtDataRec, SerialRead, SerialReadStorage},
+    types::{btree::BTHdrRec, btree::NodeDescriptor, common::ExtDataRec},
 };
 
 use std::marker::PhantomData;
