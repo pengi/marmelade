@@ -44,7 +44,8 @@ fn main() {
             eprintln!("Error: {}", err);
         }
     } else {
-        print_files(fs.open_root(), 0);
+        let prefix = String::from("");
+        print_files(fs.open_root(), &prefix);
     }
 }
 
@@ -72,18 +73,17 @@ fn open_file(fs: &hfs::HfsImage, filename: &str, use_rsrc: bool) -> std::io::Res
 }
 
 
-fn print_files(dir: HfsDirIter, indent: usize) {
-    let indstr = String::from("    ").repeat(indent);
-
+fn print_files(dir: HfsDirIter, prefix: &String) {
     for obj in dir {
         match obj {
             HfsObjRef::FileRef(file) => {
                 let (data_size, rsrc_size) = file.get_size();
-                println!("{}{:?} (size: {}/{})", indstr, file.get_name(), data_size, rsrc_size);
+                println!("{}:{} (size: {}/{})", prefix, file.get_name(), data_size, rsrc_size);
             },
             HfsObjRef::DirRef(dir) => {
-                println!("{}{:?}:", indstr, dir.get_name());
-                print_files(dir.open(), indent+1);
+                let sub_prefix = format!("{}:{}", prefix, dir.get_name());
+                println!("{} (dir)", sub_prefix);
+                print_files(dir.open(), &sub_prefix);
             }
         }
     }
