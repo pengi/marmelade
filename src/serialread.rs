@@ -1,6 +1,5 @@
-
-
 use byteorder::{BigEndian, ReadBytesExt};
+
 use std::io::{
     Cursor,
     Seek,
