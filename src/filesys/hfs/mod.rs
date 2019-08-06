@@ -190,4 +190,18 @@ impl<'img> HfsObjRef<'img> {
             HfsObjRef::DirRef(_) => false
         }
     }
+
+    pub fn to_dir(self) -> Option<HfsDirRef<'img>> {
+        match self {
+            HfsObjRef::FileRef(_) => None,
+            HfsObjRef::DirRef(dr) => Some(dr)
+        }
+    }
+
+    pub fn to_file(self) -> Option<HfsFileRef<'img>> {
+        match self {
+            HfsObjRef::FileRef(fr) => Some(fr),
+            HfsObjRef::DirRef(_) => None
+        }
+    }
 }
