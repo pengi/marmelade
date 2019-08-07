@@ -4,7 +4,10 @@ extern crate clap;
 use marmelade::{
     serialization::SerialAdaptor,
     filesys::hfs::HfsImage,
-    filesys::rsrc::Rsrc
+    filesys::rsrc::Rsrc,
+    runner::Runner,
+    tools::hexdump,
+    types::OSType
 };
 
 use std::io::{
@@ -23,10 +26,16 @@ fn main() -> std::io::Result<()> {
 
     let file_os_path = matches.value_of("img").ok_or(ErrorKind::from(ErrorKind::InvalidInput))?;
     let file_img_path = matches.value_of("file").ok_or(ErrorKind::from(ErrorKind::InvalidInput))?;
-    let (fs, rsrc) = load_file(file_os_path, file_img_path)?;
+    let (fs, mut rsrc) = load_file(file_os_path, file_img_path)?;
 
-    println!("FS: {:#?}", fs);
-    println!("Rsrc: {:#?}", rsrc);
+    // println!("Rsrc: {:#?}", rsrc);
+
+    let jumptable = rsrc.open(OSType::from(b"CODE"), 0)?.to_vec();
+    hexdump::hexdump(jumptable);
+
+    let mut runner = Runner::new(&fs, &rsrc)?;
+
+    runner.run()?;
 
     Ok(())
 }
@@ -37,5 +46,6 @@ fn load_file(file_os_path: &str, file_img_path: &str) -> std::io::Result<(HfsIma
     let rsrc_objref = fs.locate(file_img_path).ok_or(ErrorKind::from(ErrorKind::NotFound))?;
     let rsrc_fileref = rsrc_objref.to_file().ok_or(ErrorKind::from(ErrorKind::InvalidData))?;
     let rsrc = Rsrc::new(SerialAdaptor::new(rsrc_fileref.open_rsrc()))?;
+
     Ok((fs, rsrc))
 }

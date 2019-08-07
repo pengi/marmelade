@@ -140,7 +140,6 @@ impl SerialReadStorage {
         SerialReadStorage::from(Vec::from(&inner[offset as usize..(offset+len) as usize]))
     }
 
-    #[cfg(test)]
     pub fn to_vec(self) -> Vec<u8> {
         self.block.into_inner()
     }
