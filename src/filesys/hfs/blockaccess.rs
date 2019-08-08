@@ -77,37 +77,25 @@ mod tests {
         ExtDataRec,
         ExtDescriptor,
         RefCell,
-        Rc
+        Rc,
+        SerialReadStorage
     };
 
     #[derive(Debug)]
     struct MockDisk {
-        pos : u64,
         size : u64
     }
 
     impl SerialAccess for MockDisk {
-        fn seek(&mut self, pos : u64) -> std::io::Result<u64> {
-            if pos >= self.size {
-                Err(std::io::Error::from(std::io::ErrorKind::UnexpectedEof))
-            } else {
-                self.pos = pos;
-                Ok(self.pos)
-            }
-        }
-        fn size(&mut self) -> std::io::Result<u64> {
+        fn size(&self) -> std::io::Result<u64> {
             Ok(self.size)
         }
-        fn pos(&mut self) -> std::io::Result<u64> {
-            Ok(self.pos)
-        }
-        fn read(&mut self, len : u64) -> std::io::Result<Vec<u8>> {
-            if self.pos + len >= self.size {
+        fn read(&self, pos : u64, len : u64) -> std::io::Result<SerialReadStorage> {
+            if pos + len >= self.size {
                 Err(std::io::Error::from(std::io::ErrorKind::UnexpectedEof))
             } else {
-                let output = (self.pos as u8..(self.pos + len) as u8).collect();
-                self.pos += len;
-                Ok(output)
+                let output : Vec<u8> = (pos as u8..(pos + len) as u8).collect();
+                Ok(SerialReadStorage::from(output))
             }
         }
     }
@@ -115,7 +103,6 @@ mod tests {
     fn mock_ba(size : u64, blocksize : u64) -> BlockAccess {
         BlockAccess {
             storage: Rc::new(RefCell::new(Box::new(MockDisk {
-                pos: 0,
                 size: size
             }))),
             alblk_size: blocksize,
