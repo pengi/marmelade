@@ -5,7 +5,7 @@ use marmelade::{
     serialization::SerialAdaptor,
     filesys::hfs::HfsImage,
     filesys::rsrc::Rsrc,
-    runner::Runner,
+    toolbox::Toolbox,
     tools::hexdump,
     types::OSType
 };
@@ -33,9 +33,9 @@ fn main() -> std::io::Result<()> {
     let jumptable = rsrc.open(OSType::from(b"CODE"), 0)?.to_vec();
     hexdump::hexdump(jumptable);
 
-    let mut runner = Runner::new(&fs, &rsrc)?;
+    let mut toolbox = Toolbox::new(&fs, &rsrc)?;
 
-    runner.run()?;
+    toolbox.run()?;
 
     Ok(())
 }

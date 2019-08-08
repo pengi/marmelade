@@ -4,16 +4,16 @@ use r68k_emu::ram::{
     AddressSpace
 };
 
-use super::prefix::{
+use super::super::prefix::{
     Prefix,
     PrefixMap
 };
 
-pub struct MuxAddressBus {
+pub struct MuxMem {
     children: PrefixMap<Box<dyn AddressBus>>
 }
 
-impl AddressBus for MuxAddressBus {
+impl AddressBus for MuxMem {
     fn read_byte(&self, address_space: AddressSpace, address: u32) -> u32 {
         if let Some((address, bus)) = self.children.locate(address) {
             bus.read_byte(address_space, address)
@@ -63,9 +63,9 @@ impl AddressBus for MuxAddressBus {
     }
 }
 
-impl MuxAddressBus {
-    pub fn new() -> MuxAddressBus {
-        MuxAddressBus {
+impl MuxMem {
+    pub fn new() -> MuxMem {
+        MuxMem {
             children: PrefixMap::from(vec![])
         }
     }

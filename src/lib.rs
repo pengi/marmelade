@@ -6,5 +6,6 @@ pub mod filesys;
 pub mod serialization;
 pub mod types;
 pub mod runner;
+pub mod toolbox;
 
 pub mod tools;

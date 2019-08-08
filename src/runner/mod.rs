@@ -1,5 +1,4 @@
-pub mod addressbus;
-pub mod rom;
+pub mod mem;
 pub mod prefix;
 
 use r68k_emu::{
@@ -21,7 +20,7 @@ use crate::filesys::{hfs::HfsImage, rsrc::Rsrc};
 
 const START_ADDR : u32 = 0x1000;
 
-pub type RunnerCore = ConfiguredCore<AutoInterruptController, addressbus::MuxAddressBus>;
+pub type RunnerCore = ConfiguredCore<AutoInterruptController, mem::MuxMem>;
 
 pub struct Runner {
     core: RunnerCore
@@ -31,8 +30,8 @@ impl Runner {
     pub fn new(_img: &HfsImage, _rsrc: &Rsrc) -> std::io::Result<Runner> {
         let irq = AutoInterruptController::new();
         let addr_bus = {
-            let mut bus = addressbus::MuxAddressBus::new();
-            bus.add_prefix(Prefix::new(0x00001000, 20), Box::from(rom::ROM::from(
+            let mut bus = mem::MuxMem::new();
+            bus.add_prefix(Prefix::new(0x00001000, 20), Box::from(mem::ROM::from(
                 vec![0x3F, 0x3C, 0x00, 0x01, 0xA9, 0xF0] // push #1, call LoadSeg
             )));
             bus
