@@ -32,7 +32,7 @@ impl Rsrc {
         })
     }
 
-    pub fn open(&mut self, rsrc_type: OSType, id: i16) -> std::io::Result<SerialReadStorage> {
+    pub fn open(&self, rsrc_type: OSType, id: i16) -> std::io::Result<SerialReadStorage> {
         let rsrcref = self
             .map.open(rsrc_type, id)
             .ok_or(std::io::Error::from(

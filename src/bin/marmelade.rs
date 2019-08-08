@@ -26,7 +26,7 @@ fn main() -> std::io::Result<()> {
 
     let file_os_path = matches.value_of("img").ok_or(ErrorKind::from(ErrorKind::InvalidInput))?;
     let file_img_path = matches.value_of("file").ok_or(ErrorKind::from(ErrorKind::InvalidInput))?;
-    let (fs, mut rsrc) = load_file(file_os_path, file_img_path)?;
+    let (fs, rsrc) = load_file(file_os_path, file_img_path)?;
 
     // println!("Rsrc: {:#?}", rsrc);
 
