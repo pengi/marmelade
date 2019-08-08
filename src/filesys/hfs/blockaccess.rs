@@ -29,9 +29,8 @@ impl BlockAccess {
     }
 
     fn do_read_blk(&self, offset: u64, len: u64) -> std::io::Result<SerialReadStorage> {
-        let mut storage = self.storage.borrow_mut();
-        storage.seek(offset)?;
-        storage.read(len)
+        let storage = self.storage.borrow();
+        storage.read(offset, len)
     }
 
     fn do_read_extdescriptor(&self, descr: &ExtDescriptor, offset: u64, len: u64) -> std::io::Result<SerialReadStorage> {

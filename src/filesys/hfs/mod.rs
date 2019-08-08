@@ -41,12 +41,10 @@ pub struct HfsImage
 impl HfsImage
 {
     pub fn from(storage: Box<dyn SerialAccess>) -> io::Result<HfsImage> {
-        let mut storage = storage;
         // let size = storage.size()?;
 
         // Bootstrap with getting header, to get block size information
-        storage.seek(2*512)?;
-        let mut mdb_block : SerialReadStorage = SerialReadStorage::from(storage.read(512)?);
+        let mut mdb_block : SerialReadStorage = SerialReadStorage::from(storage.read(2*512, 512)?);
         let mdb = MDB::read(&mut mdb_block)?;
 
         // Set up block access

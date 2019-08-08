@@ -19,13 +19,10 @@ pub struct Rsrc {
 
 impl Rsrc {
     pub fn new(storage: Box<dyn SerialAccess>) -> std::io::Result<Rsrc> {
-        let mut storage = storage;
-        storage.seek(0)?;
-        let mut rdr = storage.read(16)?;
+        let mut rdr = storage.read(0, 16)?;
         let header = RsrcHeader::read(&mut rdr)?;
 
-        storage.seek(header.map_offset as u64)?;
-        let mut rdr = storage.read(header.map_len as u64)?;
+        let mut rdr = storage.read(header.map_offset as u64, header.map_len as u64)?;
         let map = RsrcMap::read(&mut rdr)?;
 
         Ok(Rsrc{
@@ -42,11 +39,9 @@ impl Rsrc {
                     std::io::ErrorKind::NotFound
                 ))?;
 
-        self.storage.seek(self.header.data_offset as u64 + rsrcref.data_offset)?;
-        let mut size_rdr = self.storage.read(4)?;
+        let mut size_rdr = self.storage.read(self.header.data_offset as u64 + rsrcref.data_offset, 4)?;
         let size = u32::read(&mut size_rdr)?;
 
-        self.storage.seek(self.header.data_offset as u64 + rsrcref.data_offset+4)?;
-        self.storage.read(size as u64)
+        self.storage.read(self.header.data_offset as u64 + rsrcref.data_offset+4, size as u64)
     }
 }
