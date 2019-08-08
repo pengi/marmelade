@@ -14,27 +14,27 @@ const PREFIX_ONES : [u32; 33] = [
 #[derive(PartialEq, Debug)]
 pub struct Prefix {
     pub mask : u32,
-    pub value : u32
+    pub address : u32
 }
 
 impl Prefix {
-    pub fn new(value : u32, length : u32) -> Prefix {
+    pub fn new(address : u32, length : u32) -> Prefix {
         let mask = PREFIX_ONES[length as usize];
-        assert_eq!(0, value & !mask);
-        Prefix { mask, value }
+        assert_eq!(0, address & !mask);
+        Prefix { mask, address }
     }
 
-    pub fn contains_value(&self, value: u32) -> bool {
-        (value & self.mask) == self.value
+    pub fn contains_value(&self, address: u32) -> bool {
+        (address & self.mask) == self.address
     }
 
-    pub fn contains_prefix(&self, value: Prefix) -> bool {
-        if (self.mask & !value.mask) != 0 {
+    pub fn contains_prefix(&self, other: Prefix) -> bool {
+        if (self.mask & !other.mask) != 0 {
             // A longer prefix can't contain a shorter
             false
         } else {
             // ...otherwise check if first value contains
-            (value.value & self.mask) == self.value
+            (other.address & self.mask) == self.address
         }
     }
 }
@@ -53,21 +53,26 @@ impl<T> From<Vec<(Prefix, T)>> for PrefixMap<T> {
 }
 
 impl<T> PrefixMap<T> {
-    fn locate(&self, address : u32) -> Option<&T> {
+    pub fn locate(&self, address : u32) -> Option<(u32, &T)> {
         for (prefix, ref value) in self.children.iter() {
             if prefix.contains_value(address) {
-                return Some(value);
+                return Some(((address & !prefix.address), value));
             }
         }
         None
     }
-    fn locate_mut(&mut self, address : u32) -> Option<&mut T> {
+
+    pub fn locate_mut(&mut self, address : u32) -> Option<(u32, &mut T)> {
         for (prefix, ref mut value) in self.children.iter_mut() {
             if prefix.contains_value(address) {
-                return Some(value);
+                return Some(((address & !prefix.address), value));
             }
         }
         None
+    }
+
+    pub fn add_prefix(&mut self, prefix: Prefix, value: T) {
+        self.children.push((prefix, value));
     }
 }
 
@@ -84,19 +89,19 @@ mod tests {
         let prefix = Prefix::new(0x43000000, 8);
         assert_eq!(prefix, Prefix{
             mask: 0xff000000,
-            value: 0x43000000
+            address: 0x43000000
         });
 
         let prefix = Prefix::new(0x00000000, 0);
         assert_eq!(prefix, Prefix{
             mask: 0x00000000,
-            value: 0x00000000
+            address: 0x00000000
         });
 
         let prefix = Prefix::new(0x12345678, 32);
         assert_eq!(prefix, Prefix{
             mask: 0xffffffff,
-            value: 0x12345678
+            address: 0x12345678
         });
     }
 
@@ -149,12 +154,12 @@ mod tests {
             (Prefix::new(0x20000000, 8), 3),
             (Prefix::new(0x40000000, 8), 4)
         ]);
-        assert_eq!(map.locate(0x00000123), Some(&1));
-        assert_eq!(map.locate(0x00001000), Some(&2));
-        assert_eq!(map.locate(0x00001123), Some(&2));
+        assert_eq!(map.locate(0x00000123), Some((0x00000123, &1)));
+        assert_eq!(map.locate(0x00001000), Some((0x00000000, &2)));
+        assert_eq!(map.locate(0x00001123), Some((0x00000123, &2)));
         assert_eq!(map.locate(0x00003123), None);
         assert_eq!(map.locate(0x10003123), None);
-        assert_eq!(map.locate(0x20003123), Some(&3));
+        assert_eq!(map.locate(0x20003123), Some((0x00003123, &3)));
         assert_eq!(map.locate(0x30003123), None);
     }
 
@@ -166,12 +171,12 @@ mod tests {
             (Prefix::new(0x20000000, 8), 3),
             (Prefix::new(0x40000000, 8), 4)
         ]);
-        assert_eq!(map.locate_mut(0x00000123), Some(&mut 1));
-        assert_eq!(map.locate_mut(0x00001000), Some(&mut 2));
-        assert_eq!(map.locate_mut(0x00001123), Some(&mut 2));
+        assert_eq!(map.locate_mut(0x00000123), Some((0x00000123, &mut 1)));
+        assert_eq!(map.locate_mut(0x00001000), Some((0x00000000, &mut 2)));
+        assert_eq!(map.locate_mut(0x00001123), Some((0x00000123, &mut 2)));
         assert_eq!(map.locate_mut(0x00003123), None);
         assert_eq!(map.locate_mut(0x10003123), None);
-        assert_eq!(map.locate_mut(0x20003123), Some(&mut 3));
+        assert_eq!(map.locate_mut(0x20003123), Some((0x00003123, &mut 3)));
         assert_eq!(map.locate_mut(0x30003123), None);
     }
 }

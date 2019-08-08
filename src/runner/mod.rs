@@ -1,4 +1,5 @@
 pub mod addressbus;
+pub mod rom;
 pub mod prefix;
 
 use r68k_emu::{
@@ -8,12 +9,13 @@ use r68k_emu::{
         Callbacks,
         Exception,
         Cycles,
+        Core,
         Result
     },
-    ram::AddressBus,
-    interrupts::AutoInterruptController,
-    interrupts::InterruptController
+    interrupts::AutoInterruptController
 };
+
+use prefix::Prefix;
 
 use crate::filesys::{hfs::HfsImage, rsrc::Rsrc};
 
@@ -28,7 +30,13 @@ pub struct Runner {
 impl Runner {
     pub fn new(_img: &HfsImage, _rsrc: &Rsrc) -> std::io::Result<Runner> {
         let irq = AutoInterruptController::new();
-        let addr_bus = addressbus::MuxAddressBus;
+        let addr_bus = {
+            let mut bus = addressbus::MuxAddressBus::new();
+            bus.add_prefix(Prefix::new(0x00001000, 20), Box::from(rom::ROM::from(
+                vec![0x3F, 0x3C, 0x00, 0x01, 0xA9, 0xF0] // push #1, call LoadSeg
+            )));
+            bus
+        };
         let core = RunnerCore::new_with(START_ADDR, irq, addr_bus);
         Ok(Runner { core })
     }
@@ -37,7 +45,7 @@ impl Runner {
         for _ in 0..100 {
             self.print_core();
             self.core.execute_with_state(1, &mut RunnerCallbacks);
-            if self.core.processing_state == ProcessingState::Halted {
+            if self.core.processing_state == ProcessingState::Halted || self.core.processing_state == ProcessingState::Stopped {
                 break;
             }
         }
@@ -87,11 +95,12 @@ impl Runner {
 }
 
 struct RunnerCallbacks;
-impl<T: InterruptController, A: AddressBus> Callbacks<T, A> for RunnerCallbacks {
-    fn exception_callback(&mut self, _: &mut ConfiguredCore<T, A>, ex: Exception) -> Result<Cycles> {
+impl Callbacks for RunnerCallbacks {
+    fn exception_callback(&mut self, core: &mut impl Core, ex: Exception) -> Result<Cycles> {
         match ex {
             Exception::UnimplementedInstruction(ir, pc, _) if (ir&0xf000) == 0xa000 => {
                 println!("Toolbox trap {:04x} at {:08x}", ir, pc);
+                core.stop_instruction_processing();
                 Ok(Cycles(10))
             },
             _ => Err(ex)
