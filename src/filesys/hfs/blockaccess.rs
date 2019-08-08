@@ -3,8 +3,8 @@ use crate::serialization::{
     SerialReadStorage
 };
 
-use std::cell::RefCell;
 use std::rc::Rc;
+use std::borrow::Borrow;
 
 use super::types::common::{
     ExtDataRec,
@@ -14,7 +14,7 @@ use super::types::common::{
 #[derive(Debug)]
 #[derive(Clone)]
 pub struct BlockAccess {
-    storage: Rc<RefCell<Box<dyn SerialAccess>>>,
+    storage: Rc<Box<dyn SerialAccess>>,
     alblk_start: u64,
     alblk_size: u64
 }
@@ -22,14 +22,14 @@ pub struct BlockAccess {
 impl BlockAccess {
     pub fn new(storage: Box<dyn SerialAccess>, alblk_start: u64, alblk_size: u64) -> BlockAccess {
         BlockAccess {
-            storage: Rc::new(RefCell::new(storage)),
+            storage: Rc::new(storage),
             alblk_start: alblk_start * 512,
             alblk_size
         }
     }
 
     fn do_read_blk(&self, offset: u64, len: u64) -> std::io::Result<SerialReadStorage> {
-        let storage = self.storage.borrow();
+        let storage : &Box<dyn SerialAccess> = self.storage.borrow();
         storage.read(offset, len)
     }
 
@@ -76,7 +76,6 @@ mod tests {
         BlockAccess,
         ExtDataRec,
         ExtDescriptor,
-        RefCell,
         Rc,
         SerialReadStorage
     };
@@ -102,9 +101,9 @@ mod tests {
 
     fn mock_ba(size : u64, blocksize : u64) -> BlockAccess {
         BlockAccess {
-            storage: Rc::new(RefCell::new(Box::new(MockDisk {
+            storage: Rc::new(Box::new(MockDisk {
                 size: size
-            }))),
+            })),
             alblk_size: blocksize,
             alblk_start: 0
         }
