@@ -5,11 +5,16 @@ use r68k_emu::ram::{
 use crate::phy::prefix::Prefix;
 use super::Toolbox;
 use std::rc::Weak;
+use std::collections::HashMap;
+use crate::types::OSType;
+
+const SEGMENT_MAX_SIZE : u32 = 0x8000;
 
 pub struct SegmentLoader {
     address_base: u32,
     address_prefix: u32,
-    toolbox: Weak<Toolbox>
+    toolbox: Weak<Toolbox>,
+    data: Vec<(i16, Vec<u8>)>
 }
 
 
@@ -18,7 +23,8 @@ impl SegmentLoader {
         SegmentLoader {
             address_base,
             address_prefix,
-            toolbox: Weak::new()
+            toolbox: Weak::new(),
+            data: vec![]
         }
     }
 
@@ -29,13 +35,46 @@ impl SegmentLoader {
     pub fn set_toolbox(&mut self, toolbox: Weak<Toolbox>) {
         self.toolbox = toolbox;
     }
+
+    pub fn load(&mut self, id: i16) -> Option<u32> {
+        if let Some(toolbox) = self.toolbox.upgrade() {
+            // See if already loaded
+            for (idx, (cur_id, _)) in self.data.iter().enumerate() {
+                if *cur_id == id {
+                    println!("Load segment {}", id);
+                    return Some(idx as u32 * SEGMENT_MAX_SIZE + self.address_base);
+                } 
+            }
+
+            let idx = self.data.len();
+
+            let data = toolbox.rsrc.open(OSType::from(b"CODE"), id).ok()?.to_vec();
+            self.data.push((id, data));
+
+            println!("Load segment {}", id);
+            Some(idx as u32 * SEGMENT_MAX_SIZE + self.address_base)
+        } else {
+            println!("Can't load segment {}", id);
+            None
+        }
+    }
 }
 
 impl AddressBus for SegmentLoader {
     fn read_byte(&self, _address_space: AddressSpace, address: u32) -> u32 {
-        0xff
+        let segment_idx = address / SEGMENT_MAX_SIZE;
+        let segment_offset = address % SEGMENT_MAX_SIZE;
+        if let Some((_, data)) = self.data.get(segment_idx as usize) {
+            println!("Read data @ {:08x}", address);
+
+            // 4 bytes header on segment
+            *data.get(segment_offset as usize + 4).unwrap_or(&0xff) as u32
+        } else {
+            0xff
+        }
     }
     fn write_byte(&mut self, _address_space: AddressSpace, address: u32, value: u32) {
+        println!("Can't write to segment {:08x}", address);
     }
 
 

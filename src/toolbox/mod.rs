@@ -22,12 +22,11 @@ use crate::{
 use std::rc::Rc;
 use traphandler::ToolboxTrapHandler;
 use segment_loader::SegmentLoader;
-use std::borrow::BorrowMut;
 
 type ToolboxPhy = Phy<MuxMem, ToolboxTrapHandler>;
 
 pub struct Toolbox {
-    img: HfsImage,
+    _img: HfsImage,
     rsrc: Rsrc,
     segment_loader: RcMem<SegmentLoader>
 
@@ -36,7 +35,7 @@ pub struct Toolbox {
 impl Toolbox {
     pub fn new(img: HfsImage, rsrc: Rsrc) -> std::io::Result<Rc<Toolbox>> {
         let toolbox = Rc::new(Toolbox {
-            img,
+            _img: img,
             rsrc,
             segment_loader: RcMem::new(SegmentLoader::new(0x20000000, 8))
         });
@@ -71,6 +70,19 @@ impl Toolbox {
         let mut phy = Phy::new(mem, handlers);
 
         phy.core.jump(0x1012); // Jump to first load entry in jump table
+
+        // Push some random data to stack, TODO: Do proper startup
+        phy.core.push_16(0xaaaa);
+        phy.core.push_16(0x5555);
+        phy.core.push_16(0xaaaa);
+        phy.core.push_16(0x5555);
+        phy.core.push_16(0xaaaa);
+        phy.core.push_16(0x5555);
+        phy.core.push_16(0xaaaa);
+        phy.core.push_16(0x5555);
+
+        // Set A5 to dummy value, to identify code accessing relative to that
+        phy.core.dar[8+5] = 0xbaddecaf;
 
         Ok(phy)
     }
