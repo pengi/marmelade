@@ -6,28 +6,29 @@ use r68k_emu::{
         ConfiguredCore,
         ProcessingState,
         Callbacks,
-        Core,
         Cycles,
         Exception,
         Result
     },
-    ram::{
-        AddressBus
-    },
     interrupts::AutoInterruptController
+};
+
+pub use r68k_emu::{
+    cpu::Core,
+    ram::AddressBus
 };
 
 const START_ADDR : u32 = 0x1000;
 
-pub type PhyCore<M> = ConfiguredCore<AutoInterruptController, M>;
+type PhyCore<M> = ConfiguredCore<AutoInterruptController, M>;
 
-pub struct Phy<M : AddressBus> {
+pub struct Phy<M : AddressBus, T : TrapHandler> {
     core: PhyCore<M>,
-    callbacks: PhyCallbacks
+    callbacks: PhyCallbacks<T>
 }
 
-impl<M : AddressBus> Phy<M> {
-    pub fn new(membus: M, handlers: Box<dyn TrapHandler>) -> Phy<M> {
+impl<M : AddressBus, T : TrapHandler> Phy<M, T> {
+    pub fn new(membus: M, handlers: T) -> Phy<M, T> {
         let irq = AutoInterruptController::new();
         let core = PhyCore::new_with(START_ADDR, irq, membus);
         Phy {
@@ -94,28 +95,28 @@ pub enum TrapResult {
 }
 
 pub trait TrapHandler {
-    fn line_1010_emualtion(&mut self, _ir: u16, _pc: u32) -> TrapResult {
+    fn line_1010_emualtion(&mut self, _core: &mut impl Core, _ir: u16, _pc: u32) -> TrapResult {
         TrapResult::Continue
     }
 }
 
-struct PhyCallbacks {
-    handler: Box<dyn TrapHandler>
+struct PhyCallbacks<T : TrapHandler> {
+    handler: T
 }
 
-impl PhyCallbacks {
-    pub fn new(handler: Box<dyn TrapHandler>) -> PhyCallbacks {
+impl<T : TrapHandler> PhyCallbacks<T> {
+    pub fn new(handler: T) -> PhyCallbacks<T> {
         PhyCallbacks {
             handler
         }
     }
 }
 
-impl Callbacks for PhyCallbacks {
+impl<T : TrapHandler> Callbacks for PhyCallbacks<T> {
     fn exception_callback(&mut self, core: &mut impl Core, ex: Exception) -> Result<Cycles> {
         let action = match ex {
             Exception::UnimplementedInstruction(ir, pc, 10) => {
-                self.handler.line_1010_emualtion(ir, pc)
+                self.handler.line_1010_emualtion(core, ir, pc)
             },
             _ => {
                 println!("Unmatched handler: {:?}", ex);

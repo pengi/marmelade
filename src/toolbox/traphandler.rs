@@ -4,7 +4,8 @@ use super::{
 
 use crate::phy::{
     TrapHandler,
-    TrapResult
+    TrapResult,
+    Core
 };
 
 use std::rc::Rc;
@@ -22,7 +23,7 @@ impl ToolboxTrapHandler {
 }
 
 impl TrapHandler for ToolboxTrapHandler {
-    fn line_1010_emualtion(&mut self, ir: u16, pc: u32) -> TrapResult {
+    fn line_1010_emualtion(&mut self, _core: &mut impl Core, ir: u16, pc: u32) -> TrapResult {
         println!("Toolbox trap {:04x} @ {:08x}", ir, pc);
         TrapResult::Halt
     }

@@ -35,7 +35,7 @@ impl Toolbox {
     }
 
 
-    pub fn into_phy(self) -> (Rc<Toolbox>, Phy<MuxMem>) {
+    pub fn into_phy(self) -> (Rc<Toolbox>, Phy<MuxMem, ToolboxTrapHandler>) {
         let toolbox = Rc::new(self);
         let mut mem = MuxMem::new();
 
@@ -45,6 +45,6 @@ impl Toolbox {
             vec![0xa9, 0xf0]
         )));
 
-        (toolbox, Phy::new(mem, Box::new(handlers)))
+        (toolbox, Phy::new(mem, handlers))
     }
 }
