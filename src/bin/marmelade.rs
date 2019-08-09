@@ -28,13 +28,11 @@ fn main() -> std::io::Result<()> {
     let file_img_path = matches.value_of("file").ok_or(ErrorKind::from(ErrorKind::InvalidInput))?;
     let (fs, rsrc) = load_file(file_os_path, file_img_path)?;
 
-    // println!("Rsrc: {:#?}", rsrc);
-
     let jumptable = rsrc.open(OSType::from(b"CODE"), 0)?.to_vec();
     hexdump::hexdump(jumptable);
 
     let toolbox = Toolbox::new(fs, rsrc)?;
-    let (_toolbox, mut phy) = toolbox.into_phy();
+    let (_toolbox, mut phy) = toolbox.into_phy()?;
 
     phy.run();
 

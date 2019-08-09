@@ -14,7 +14,8 @@ use crate::{
             MuxMem,
             RAM
         }
-    }
+    },
+    types::OSType
 };
 use std::rc::Rc;
 use traphandler::ToolboxTrapHandler;
@@ -35,19 +36,23 @@ impl Toolbox {
     }
 
 
-    pub fn into_phy(self) -> (Rc<Toolbox>, ToolboxPhy) {
+    pub fn into_phy(self) -> std::io::Result<(Rc<Toolbox>, ToolboxPhy)> {
         let toolbox = Rc::new(self);
         let mut mem = MuxMem::new();
 
         let handlers = ToolboxTrapHandler::new(toolbox.clone());
 
-        mem.add_prefix(Prefix::new(0x00001000, 20), Box::new(RAM::from(
-            vec![0x3f, 0x3c, 0x00, 0x01, 0xa9, 0xf0]
-        )));
+        // Jump table
+        let jumptable_vec = toolbox.rsrc.open(OSType::from(b"CODE"), 0)?.to_vec();
+        mem.add_prefix(Prefix::new(0x00001000, 20), Box::new(RAM::from(jumptable_vec)));
 
         // Stack
         mem.add_prefix(Prefix::new(0xFFF00000, 12), Box::new(RAM::new(0x100000)));
 
-        (toolbox, Phy::new(mem, handlers))
+        let mut phy = Phy::new(mem, handlers);
+
+        phy.core.jump(0x1012); // Jump to first load entry in jump table
+
+        Ok((toolbox, phy))
     }
 }
