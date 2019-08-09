@@ -38,14 +38,30 @@ impl<M : AddressBus, T : TrapHandler> Phy<M, T> {
     }
 
     pub fn run(&mut self) -> () {
+        self.print_core_header();
         for _ in 0..100 {
-            self.print_core();
+            self.print_core_line();
             self.core.execute_with_state(1, &mut self.callbacks);
             if self.core.processing_state == ProcessingState::Halted || self.core.processing_state == ProcessingState::Stopped {
                 break;
             }
         }
         self.print_core();
+    }
+
+    fn print_core_header(&self) {
+        println!(
+            "PC...... IR.. SSP'.... USP'....   D0...... D1...... D2...... D3...... D4...... D5...... D6...... D7......   A0...... A1...... A2...... A3...... A4...... A5...... A6...... A7......   Sflag... I# INT.mask Xflag... Cflag... Vflag... Nflag... Z'flag.. state");
+    }
+    fn print_core_line(&self) {
+        let c = &self.core;
+        println!(
+            "{:08x} {:04x} {:08x} {:08x}   {:08x} {:08x} {:08x} {:08x} {:08x} {:08x} {:08x} {:08x}   {:08x} {:08x} {:08x} {:08x} {:08x} {:08x} {:08x} {:08x}   {:08x} {:02x} {:08x} {:08x} {:08x} {:08x} {:08x} {:08x} {:?}",
+            c.pc, c.ir, c.inactive_ssp, c.inactive_usp,
+            c.dar[0], c.dar[1], c.dar[2], c.dar[3], c.dar[4], c.dar[5], c.dar[6], c.dar[7],
+            c.dar[8], c.dar[9], c.dar[10], c.dar[11], c.dar[12], c.dar[13], c.dar[14], c.dar[15],
+            c.s_flag, c.irq_level, c.int_mask, c.x_flag, c.c_flag, c.v_flag, c.n_flag, c.not_z_flag, c.processing_state
+        );
     }
 
     fn print_core(&self) {

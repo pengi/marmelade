@@ -65,8 +65,6 @@ impl AddressBus for SegmentLoader {
         let segment_idx = address / SEGMENT_MAX_SIZE;
         let segment_offset = address % SEGMENT_MAX_SIZE;
         if let Some((_, data)) = self.data.get(segment_idx as usize) {
-            println!("Read data @ {:08x}", address);
-
             // 4 bytes header on segment
             *data.get(segment_offset as usize + 4).unwrap_or(&0xff) as u32
         } else {

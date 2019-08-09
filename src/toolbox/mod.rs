@@ -1,6 +1,17 @@
 mod traphandler;
 mod segment_loader;
 
+// The toolbox emulates the functionality of Macintosh Toolbox
+
+// Memory map:
+// 00000xxx - Global variables (not yet implemented)
+// 00001xxx - Jump table
+// 10exxxxx - Application globals (A5 @ 10e80000)
+// 10fxxxxx - Stack
+// 20xxxxxx - Segment loade
+// 8xxxxxxx - Dynamic RAM (not yet implemented)
+
+
 use crate::{
     filesys::{
         hfs::HfsImage,
@@ -23,6 +34,8 @@ use std::rc::Rc;
 use traphandler::ToolboxTrapHandler;
 use segment_loader::SegmentLoader;
 
+pub use r68k_emu::cpu::Core;
+
 type ToolboxPhy = Phy<MuxMem, ToolboxTrapHandler>;
 
 pub struct Toolbox {
@@ -40,7 +53,6 @@ impl Toolbox {
             segment_loader: RcMem::new(SegmentLoader::new(0x20000000, 8))
         });
 
-
         Ok(toolbox)
     }
 
@@ -51,10 +63,6 @@ impl Toolbox {
         // THe handlers is the main entry point to own the toolbox, since it's not owned back
         let handlers = ToolboxTrapHandler::new(toolbox.clone());
 
-        // Jump table
-        let jumptable_vec = toolbox.rsrc.open(OSType::from(b"CODE"), 0)?.to_vec();
-        mem.add_prefix(Prefix::new(0x00001000, 20), Box::new(RAM::from(jumptable_vec)));
-
         // Segment loader
         let mut segment_loader = toolbox.segment_loader.borrow_mut();
         segment_loader.set_toolbox(Rc::downgrade(&toolbox));
@@ -64,26 +72,33 @@ impl Toolbox {
             Box::new(toolbox.segment_loader.clone())
         );
 
+        // Application RAM
+        mem.add_prefix(Prefix::new(0x10e0_0000, 12), Box::new(RAM::new(0x0010_0000)));
         // Stack
-        mem.add_prefix(Prefix::new(0xFFF00000, 12), Box::new(RAM::new(0x100000)));
+        mem.add_prefix(Prefix::new(0x10f0_0000, 12), Box::new(RAM::new(0x0010_0000)));
 
         let mut phy = Phy::new(mem, handlers);
 
-        phy.core.jump(0x1012); // Jump to first load entry in jump table
+        phy.core.dar[8+5] = 0x10e8_0000; // A5 - application base
+        phy.core.dar[8+7] = 0x1100_0000; // A7 - stack pointer
 
-        // Push some random data to stack, TODO: Do proper startup
-        phy.core.push_16(0xaaaa);
-        phy.core.push_16(0x5555);
-        phy.core.push_16(0xaaaa);
-        phy.core.push_16(0x5555);
-        phy.core.push_16(0xaaaa);
-        phy.core.push_16(0x5555);
-        phy.core.push_16(0xaaaa);
-        phy.core.push_16(0x5555);
+        // Load jump table to RAM, at A5 + 32
+        Self::load_jump_table(&mut phy.core, &toolbox.rsrc, 0x10e0_0000 + 32)?;
 
-        // Set A5 to dummy value, to identify code accessing relative to that
-        phy.core.dar[8+5] = 0xbaddecaf;
+        // Start at first entry of jump table ()
+        phy.core.jump(0x10e8_0000 + 32 + 16 + 2);
+
+        // Push pointer, of some kind...
+        phy.core.push_32(0xbaddecaf);
 
         Ok(phy)
+    }
+
+    fn load_jump_table(core: &mut impl Core, rsrc: &Rsrc, address: u32) -> std::io::Result<()> {
+        let jumptable_vec = rsrc.open(OSType::from(b"CODE"), 0)?.to_vec();
+        for (i, data) in jumptable_vec.iter().enumerate() {
+            core.write_data_byte(0x10e8_0000 + 32 + i as u32, *data as u32);
+        }
+        Ok(())
     }
 }
