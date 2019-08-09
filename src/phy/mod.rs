@@ -19,20 +19,20 @@ use r68k_emu::{
 
 const START_ADDR : u32 = 0x1000;
 
-pub type RunnerCore<M> = ConfiguredCore<AutoInterruptController, M>;
+pub type PhyCore<M> = ConfiguredCore<AutoInterruptController, M>;
 
-pub struct Runner<M : AddressBus> {
-    core: RunnerCore<M>,
-    callbacks: RunnerCallbacks
+pub struct Phy<M : AddressBus> {
+    core: PhyCore<M>,
+    callbacks: PhyCallbacks
 }
 
-impl<M : AddressBus> Runner<M> {
-    pub fn new(membus: M, handlers: Box<dyn TrapHandler>) -> Runner<M> {
+impl<M : AddressBus> Phy<M> {
+    pub fn new(membus: M, handlers: Box<dyn TrapHandler>) -> Phy<M> {
         let irq = AutoInterruptController::new();
-        let core = RunnerCore::new_with(START_ADDR, irq, membus);
-        Runner {
+        let core = PhyCore::new_with(START_ADDR, irq, membus);
+        Phy {
             core,
-            callbacks: RunnerCallbacks::new(handlers)
+            callbacks: PhyCallbacks::new(handlers)
         }
     }
 
@@ -99,19 +99,19 @@ pub trait TrapHandler {
     }
 }
 
-struct RunnerCallbacks {
+struct PhyCallbacks {
     handler: Box<dyn TrapHandler>
 }
 
-impl RunnerCallbacks {
-    pub fn new(handler: Box<dyn TrapHandler>) -> RunnerCallbacks {
-        RunnerCallbacks {
+impl PhyCallbacks {
+    pub fn new(handler: Box<dyn TrapHandler>) -> PhyCallbacks {
+        PhyCallbacks {
             handler
         }
     }
 }
 
-impl Callbacks for RunnerCallbacks {
+impl Callbacks for PhyCallbacks {
     fn exception_callback(&mut self, core: &mut impl Core, ex: Exception) -> Result<Cycles> {
         let action = match ex {
             Exception::UnimplementedInstruction(ir, pc, 10) => {

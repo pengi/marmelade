@@ -34,9 +34,9 @@ fn main() -> std::io::Result<()> {
     hexdump::hexdump(jumptable);
 
     let toolbox = Toolbox::new(fs, rsrc)?;
-    let (_toolbox, mut runner) = toolbox.into_runner();
+    let (_toolbox, mut phy) = toolbox.into_phy();
 
-    runner.run();
+    phy.run();
 
     Ok(())
 }
