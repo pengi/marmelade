@@ -1,10 +1,10 @@
 pub fn hexdump_w(vec: Vec<u8>, width: usize) {
     let mut offset = 0;
     for chunk in vec.chunks(width) {
-        print!("{:5X} |", offset);
+        print!("{:5x} |", offset);
 
         for v in chunk.iter() {
-            print!(" {:02X}", v);
+            print!(" {:02x}", v);
         }
         print!("{} | ", "   ".repeat(width-chunk.len()));
 
