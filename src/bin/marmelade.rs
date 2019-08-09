@@ -32,7 +32,7 @@ fn main() -> std::io::Result<()> {
     hexdump::hexdump(jumptable);
 
     let toolbox = Toolbox::new(fs, rsrc)?;
-    let (_toolbox, mut phy) = toolbox.into_phy()?;
+    let mut phy = Toolbox::into_phy(&toolbox)?;
 
     phy.run();
 
