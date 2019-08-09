@@ -121,7 +121,7 @@ impl<T : TrapHandler> Callbacks for PhyCallbacks<T> {
             },
             _ => {
                 println!("Unmatched handler: {:?}", ex);
-                TrapResult::Exception
+                TrapResult::Halt
             }
         };
         match action {
