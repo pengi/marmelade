@@ -3,17 +3,23 @@ use r68k_emu::ram::{
     AddressSpace
 };
 
-pub struct ROM {
+pub struct RAM {
     content: Vec<u8>
 }
 
-impl From<Vec<u8>> for ROM {
-    fn from(vec: Vec<u8>) -> ROM {
-        ROM { content: vec }
+impl RAM {
+    pub fn new(size: usize) -> RAM {
+        RAM { content: vec![0xff; size] }
     }
 }
 
-impl AddressBus for ROM {
+impl From<Vec<u8>> for RAM {
+    fn from(vec: Vec<u8>) -> RAM {
+        RAM { content: vec }
+    }
+}
+
+impl AddressBus for RAM {
     fn read_byte(&self, _address_space: AddressSpace, address: u32) -> u32 {
         if let Some(value) = self.content.get(address as usize) {
             *value as u32
@@ -27,13 +33,17 @@ impl AddressBus for ROM {
     fn read_long(&self, address_space: AddressSpace, address: u32) -> u32 {
         (self.read_word(address_space, address) << 16) | self.read_word(address_space, address+2)
     }
-    fn write_byte(&mut self, address_space: AddressSpace, address: u32, value: u32) {
-        println!("write to ROM: write_byte({:?}, {:08x}, {:02x})", address_space, address, value);
+    fn write_byte(&mut self, _address_space: AddressSpace, address: u32, value: u32) {
+        if let Some(ptr) = self.content.get_mut(address as usize) {
+            *ptr = value as u8
+        }
     }
     fn write_word(&mut self, address_space: AddressSpace, address: u32, value: u32) {
-        println!("write to ROM: write_word({:?}, {:08x}, {:04x})", address_space, address, value);
+        self.write_byte(address_space, address+0, (value>>8)&0xff);
+        self.write_byte(address_space, address+1, (value>>0)&0xff);
     }
     fn write_long(&mut self, address_space: AddressSpace, address: u32, value: u32) {
-        println!("write to ROM: write_long({:?}, {:08x}, {:08x})", address_space, address, value);
+        self.write_word(address_space, address+0, (value>>16)&0xffff);
+        self.write_word(address_space, address+2, (value>>0)&0xffff);
     }
 }

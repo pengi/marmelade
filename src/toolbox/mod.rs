@@ -12,7 +12,7 @@ use crate::{
         },
         mem::{
             MuxMem,
-            ROM
+            RAM
         }
     }
 };
@@ -41,9 +41,12 @@ impl Toolbox {
 
         let handlers = ToolboxTrapHandler::new(toolbox.clone());
 
-        mem.add_prefix(Prefix::new(0x00001000, 20), Box::new(ROM::from(
+        mem.add_prefix(Prefix::new(0x00001000, 20), Box::new(RAM::from(
             vec![0x3f, 0x3c, 0x00, 0x01, 0xa9, 0xf0]
         )));
+
+        // Stack
+        mem.add_prefix(Prefix::new(0xFFF00000, 12), Box::new(RAM::new(0x100000)));
 
         (toolbox, Phy::new(mem, handlers))
     }

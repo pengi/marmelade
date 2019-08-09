@@ -1,5 +1,5 @@
-mod rom;
+mod ram;
 mod mux;
 
-pub use rom::ROM;
+pub use ram::RAM;
 pub use mux::MuxMem;
