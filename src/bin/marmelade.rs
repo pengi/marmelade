@@ -5,9 +5,7 @@ use marmelade::{
     serialization::SerialAdaptor,
     filesys::hfs::HfsImage,
     filesys::rsrc::Rsrc,
-    toolbox::Toolbox,
-    tools::hexdump,
-    types::OSType
+    toolbox::Toolbox
 };
 
 use std::io::{
@@ -27,9 +25,6 @@ fn main() -> std::io::Result<()> {
     let file_os_path = matches.value_of("img").ok_or(ErrorKind::from(ErrorKind::InvalidInput))?;
     let file_img_path = matches.value_of("file").ok_or(ErrorKind::from(ErrorKind::InvalidInput))?;
     let (fs, rsrc) = load_file(file_os_path, file_img_path)?;
-
-    let jumptable = rsrc.open(OSType::from(b"CODE"), 0)?.to_vec();
-    hexdump::hexdump(jumptable);
 
     let toolbox = Toolbox::new(fs, rsrc)?;
     let mut phy = Toolbox::into_phy(&toolbox)?;
