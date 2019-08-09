@@ -23,7 +23,7 @@ const START_ADDR : u32 = 0x1000;
 type PhyCore<M> = ConfiguredCore<AutoInterruptController, M>;
 
 pub struct Phy<M : AddressBus, T : TrapHandler> {
-    core: PhyCore<M>,
+    pub core: PhyCore<M>,
     callbacks: PhyCallbacks<T>
 }
 
@@ -90,8 +90,9 @@ impl<M : AddressBus, T : TrapHandler> Phy<M, T> {
 }
 
 pub enum TrapResult {
-    Continue,
-    Halt
+    Exception, // Run as exception handler
+    Continue,  // Continue as normal operation
+    Halt,      // Halt CPU
 }
 
 pub trait TrapHandler {
@@ -120,11 +121,12 @@ impl<T : TrapHandler> Callbacks for PhyCallbacks<T> {
             },
             _ => {
                 println!("Unmatched handler: {:?}", ex);
-                TrapResult::Continue
+                TrapResult::Exception
             }
         };
         match action {
-            TrapResult::Continue => Err(ex),
+            TrapResult::Exception => Err(ex),
+            TrapResult::Continue => Ok(Cycles(1)),
             TrapResult::Halt => {
                 core.stop_instruction_processing();
                 Ok(Cycles(1))
