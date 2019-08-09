@@ -58,7 +58,7 @@ pub fn print_core_line<M : AddressBus, T : TrapHandler>(tbx : &Phy<M, T>) {
     let c = &tbx.core;
 
     print!(
-        "{:08x} {:04x} {:08x} {:08x}   {:08x} {:08x} {:08x} {:08x} {:08x} {:08x} {:08x} {:08x}   {:08x} {:08x} {:08x} {:08x} {:08x} {:08x} {:08x} {:08x}   {:08x} {:02x} {:08x} {:08x} {:08x} {:08x} {:08x} {:08x} {:?} ",
+        "{:08x} {:04x} {:08x} {:08x}   {:08x} {:08x} {:08x} {:08x} {:08x} {:08x} {:08x} {:08x}   {:08x} {:08x} {:08x} {:08x} {:08x} {:08x} {:08x} {:08x}   {:08x} {:02x} {:08x} {:08x} {:08x} {:08x} {:08x} {:08x} {:?}   ",
         c.pc, c.ir, c.inactive_ssp, c.inactive_usp,
         c.dar[0], c.dar[1], c.dar[2], c.dar[3], c.dar[4], c.dar[5], c.dar[6], c.dar[7],
         c.dar[8], c.dar[9], c.dar[10], c.dar[11], c.dar[12], c.dar[13], c.dar[14], c.dar[15],
@@ -67,9 +67,15 @@ pub fn print_core_line<M : AddressBus, T : TrapHandler>(tbx : &Phy<M, T>) {
 
     let mem = PhyMemory::new(&tbx);
     if let Ok((_, inst)) = disassemble(PC(c.pc), &mem) {
-        println!(" {}", inst);
+        let mut inst = format!("{}", inst);
+        if let Some(delim) = inst.find("\t") {
+            let arg = inst.split_off(delim);
+            println!("{:10} {}", inst.trim(), arg.trim());
+        } else {
+            println!("{}", inst);
+        }
     } else {
-        println!(" ${:04x}", mem.read_word(PC(c.pc)));
+        println!("${:04x}", mem.read_word(PC(c.pc)));
     }
 }
 
