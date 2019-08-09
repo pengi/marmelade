@@ -6,50 +6,45 @@ use r68k_emu::{
         ConfiguredCore,
         ProcessingState,
         Callbacks,
-        Exception,
-        Cycles,
         Core,
+        Cycles,
+        Exception,
         Result
+    },
+    ram::{
+        AddressBus
     },
     interrupts::AutoInterruptController
 };
 
-use prefix::Prefix;
-
-use crate::filesys::{hfs::HfsImage, rsrc::Rsrc};
-
 const START_ADDR : u32 = 0x1000;
 
-pub type RunnerCore = ConfiguredCore<AutoInterruptController, mem::MuxMem>;
+pub type RunnerCore<M> = ConfiguredCore<AutoInterruptController, M>;
 
-pub struct Runner {
-    core: RunnerCore
+pub struct Runner<M : AddressBus> {
+    core: RunnerCore<M>,
+    callbacks: RunnerCallbacks
 }
 
-impl Runner {
-    pub fn new(_img: &HfsImage, _rsrc: &Rsrc) -> std::io::Result<Runner> {
+impl<M : AddressBus> Runner<M> {
+    pub fn new(membus: M, handlers: Box<dyn TrapHandler>) -> Runner<M> {
         let irq = AutoInterruptController::new();
-        let addr_bus = {
-            let mut bus = mem::MuxMem::new();
-            bus.add_prefix(Prefix::new(0x00001000, 20), Box::from(mem::ROM::from(
-                vec![0x3F, 0x3C, 0x00, 0x01, 0xA9, 0xF0] // push #1, call LoadSeg
-            )));
-            bus
-        };
-        let core = RunnerCore::new_with(START_ADDR, irq, addr_bus);
-        Ok(Runner { core })
+        let core = RunnerCore::new_with(START_ADDR, irq, membus);
+        Runner {
+            core,
+            callbacks: RunnerCallbacks::new(handlers)
+        }
     }
 
-    pub fn run(&mut self) -> std::io::Result<()> {
+    pub fn run(&mut self) -> () {
         for _ in 0..100 {
             self.print_core();
-            self.core.execute_with_state(1, &mut RunnerCallbacks);
+            self.core.execute_with_state(1, &mut self.callbacks);
             if self.core.processing_state == ProcessingState::Halted || self.core.processing_state == ProcessingState::Stopped {
                 break;
             }
         }
         self.print_core();
-        Ok(())
     }
 
     fn print_core(&self) {
@@ -93,16 +88,46 @@ impl Runner {
     }
 }
 
-struct RunnerCallbacks;
+pub enum TrapResult {
+    Continue,
+    Halt
+}
+
+pub trait TrapHandler {
+    fn line_1010_emualtion(&mut self, _ir: u16, _pc: u32) -> TrapResult {
+        TrapResult::Continue
+    }
+}
+
+struct RunnerCallbacks {
+    handler: Box<dyn TrapHandler>
+}
+
+impl RunnerCallbacks {
+    pub fn new(handler: Box<dyn TrapHandler>) -> RunnerCallbacks {
+        RunnerCallbacks {
+            handler
+        }
+    }
+}
+
 impl Callbacks for RunnerCallbacks {
     fn exception_callback(&mut self, core: &mut impl Core, ex: Exception) -> Result<Cycles> {
-        match ex {
-            Exception::UnimplementedInstruction(ir, pc, _) if (ir&0xf000) == 0xa000 => {
-                println!("Toolbox trap {:04x} at {:08x}", ir, pc);
-                core.stop_instruction_processing();
-                Ok(Cycles(10))
+        let action = match ex {
+            Exception::UnimplementedInstruction(ir, pc, 10) => {
+                self.handler.line_1010_emualtion(ir, pc)
             },
-            _ => Err(ex)
+            _ => {
+                println!("Unmatched handler: {:?}", ex);
+                TrapResult::Continue
+            }
+        };
+        match action {
+            TrapResult::Continue => Err(ex),
+            TrapResult::Halt => {
+                core.stop_instruction_processing();
+                Ok(Cycles(1))
+            }
         }
     }
 }

@@ -33,9 +33,10 @@ fn main() -> std::io::Result<()> {
     let jumptable = rsrc.open(OSType::from(b"CODE"), 0)?.to_vec();
     hexdump::hexdump(jumptable);
 
-    let mut toolbox = Toolbox::new(&fs, &rsrc)?;
+    let toolbox = Toolbox::new(fs, rsrc)?;
+    let (_toolbox, mut runner) = toolbox.into_runner();
 
-    toolbox.run()?;
+    runner.run();
 
     Ok(())
 }
