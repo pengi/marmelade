@@ -1,5 +1,4 @@
 use r68k_emu::{
-    cpu::Core,
     ram::AddressBus,
     ram::SUPERVISOR_PROGRAM
 };
@@ -38,13 +37,13 @@ impl<'phy, M : AddressBus, T : TrapHandler> Memory for PhyMemory<'phy, M, T> {
     fn read_byte(&self, pc: PC) -> u8 {
         self.phy.core.mem.read_byte(SUPERVISOR_PROGRAM, pc.0) as u8
     }
-    fn write_byte(&mut self, pc: PC, byte: u8) -> PC {
+    fn write_byte(&mut self, _pc: PC, _byte: u8) -> PC {
         unimplemented!();
     }
-    fn write_word(&mut self, pc: PC, word: u16) -> PC {
+    fn write_word(&mut self, _pc: PC, _word: u16) -> PC {
         unimplemented!();
     }
-    fn write_vec(&mut self, pc: PC, bytes: Vec<u8>) -> PC {
+    fn write_vec(&mut self, _pc: PC, _bytes: Vec<u8>) -> PC {
         unimplemented!();
     }
 }

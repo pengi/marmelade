@@ -83,7 +83,7 @@ impl Toolbox {
         phy.core.dar[8+7] = 0x1100_0000; // A7 - stack pointer
 
         // Load jump table to RAM, at A5 + 32
-        Self::load_jump_table(&mut phy.core, &toolbox.rsrc, 0x10e0_0000 + 32)?;
+        Self::load_jump_table(&mut phy.core, &toolbox.rsrc, 0x10e8_0000 + 32)?;
 
         // Start at first entry of jump table ()
         phy.core.jump(0x10e8_0000 + 32 + 16 + 2);
@@ -97,7 +97,7 @@ impl Toolbox {
     fn load_jump_table(core: &mut impl Core, rsrc: &Rsrc, address: u32) -> std::io::Result<()> {
         let jumptable_vec = rsrc.open(OSType::from(b"CODE"), 0)?.to_vec();
         for (i, data) in jumptable_vec.iter().enumerate() {
-            core.write_data_byte(0x10e8_0000 + 32 + i as u32, *data as u32);
+            core.write_data_byte(address + i as u32, *data as u32).unwrap();
         }
         Ok(())
     }
