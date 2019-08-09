@@ -27,12 +27,9 @@ impl ToolboxTrapHandler {
 impl ToolboxTrapHandler {
     fn LoadSeg(&mut self, core: &mut impl Core, pc: u32) -> TrapResult {
         let code_id = core.pop_16() as i16;
-        println!("LoadSeg({})", code_id);
         if let Some(address) = self.toolbox.segment_loader.borrow_mut().load(code_id) {
             // Read metadata from jump table
             let offset = core.read_data_word(pc - 6).unwrap(); // offset field
-
-            println!("Loaded to: {:08x} + {:04x}", address, offset);
 
             // Update jump table to jump instruction
             core.write_data_word(pc - 6, (code_id as u16) as u32).unwrap(); // Store section id

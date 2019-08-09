@@ -6,7 +6,10 @@ use crate::serialization::{SerialAccess, SerialRead, SerialReadStorage};
 use types::{
     RsrcHeader
 };
-use crate::types::OSType;
+use crate::types::{
+    OSType,
+    PString
+};
 
 use map::RsrcMap;
 
@@ -30,6 +33,15 @@ impl Rsrc {
             header,
             map
         })
+    }
+
+    pub fn name(&self, rsrc_type: OSType, id: i16) -> std::io::Result<Option<PString>> {
+        let rsrcref = self
+            .map.open(rsrc_type, id)
+            .ok_or(std::io::Error::from(
+                    std::io::ErrorKind::NotFound
+                ))?;
+        Ok(rsrcref.name.clone())
     }
 
     pub fn open(&self, rsrc_type: OSType, id: i16) -> std::io::Result<SerialReadStorage> {

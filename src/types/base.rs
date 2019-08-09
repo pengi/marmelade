@@ -35,6 +35,7 @@ impl From<&[u8; 4]> for OSType {
 
 #[derive(PartialEq)]
 #[derive(PartialOrd)]
+#[derive(Clone)]
 pub struct PString (Vec<u8>);
 
 impl std::fmt::Debug for PString {

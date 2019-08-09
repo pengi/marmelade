@@ -6,7 +6,11 @@ use crate::phy::prefix::Prefix;
 use super::Toolbox;
 use std::rc::Weak;
 use std::collections::HashMap;
-use crate::types::OSType;
+use crate::types::{
+    PString,
+    OSType
+};
+
 
 const SEGMENT_MAX_SIZE : u32 = 0x8000;
 
@@ -38,21 +42,25 @@ impl SegmentLoader {
 
     pub fn load(&mut self, id: i16) -> Option<u32> {
         if let Some(toolbox) = self.toolbox.upgrade() {
+            let name = toolbox.rsrc.name(OSType::from(b"CODE"), id).ok()?.unwrap_or(PString::from("-"));
+
             // See if already loaded
             for (idx, (cur_id, _)) in self.data.iter().enumerate() {
                 if *cur_id == id {
-                    println!("Load segment {}", id);
-                    return Some(idx as u32 * SEGMENT_MAX_SIZE + self.address_base);
+                    let address = idx as u32 * SEGMENT_MAX_SIZE + self.address_base;
+                    println!("Segment loader: already loaded: {} {} @{:08x}", id, name, address);
+                    return Some(address);
                 } 
             }
 
             let idx = self.data.len();
+            let address = idx as u32 * SEGMENT_MAX_SIZE + self.address_base;
 
             let data = toolbox.rsrc.open(OSType::from(b"CODE"), id).ok()?.to_vec();
             self.data.push((id, data));
 
-            println!("Load segment {}", id);
-            Some(idx as u32 * SEGMENT_MAX_SIZE + self.address_base)
+            println!("Segment loader: loading: {} {} @{:08x}", id, name, address);
+            Some(address)
         } else {
             println!("Can't load segment {}", id);
             None
