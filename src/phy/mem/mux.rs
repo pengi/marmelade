@@ -18,38 +18,35 @@ impl AddressBus for MuxMem {
         if let Some((address, bus)) = self.children.locate(address) {
             bus.read_byte(address_space, address)
         } else {
-            println!("unmapped read_byte({:?}, {:08x})", address_space, address);
-            0xff
+            panic!("unmapped read_byte({:?}, {:08x})", address_space, address);
         }
     }
     fn read_word(&self, address_space: AddressSpace, address: u32) -> u32 {
         if let Some((address, bus)) = self.children.locate(address) {
             bus.read_word(address_space, address)
         } else {
-            println!("unmapped read_word({:?}, {:08x})", address_space, address);
-            0xffff
+            panic!("unmapped read_word({:?}, {:08x})", address_space, address);
         }
     }
     fn read_long(&self, address_space: AddressSpace, address: u32) -> u32 {
         if let Some((address, bus)) = self.children.locate(address) {
             bus.read_long(address_space, address)
         } else {
-            println!("unmapped read_long({:?}, {:08x})", address_space, address);
-            0xffffffff
+            panic!("unmapped read_long({:?}, {:08x})", address_space, address);
         }
     }
     fn write_byte(&mut self, address_space: AddressSpace, address: u32, value: u32) {
         if let Some((address, bus)) = self.children.locate_mut(address) {
             bus.write_byte(address_space, address, value);
         } else {
-            println!("unmapped write_byte({:?}, {:08x}, {:02x})", address_space, address, value);
+            panic!("unmapped write_byte({:?}, {:08x}, {:02x})", address_space, address, value);
         }
     }
     fn write_word(&mut self, address_space: AddressSpace, address: u32, value: u32) {
         if let Some((address, bus)) = self.children.locate_mut(address) {
             bus.write_word(address_space, address, value);
         } else {
-            println!("unmapped write_word({:?}, {:08x}, {:04x})", address_space, address, value);
+            panic!("unmapped write_word({:?}, {:08x}, {:04x})", address_space, address, value);
         }
 
     }
@@ -57,7 +54,7 @@ impl AddressBus for MuxMem {
         if let Some((address, bus)) = self.children.locate_mut(address) {
             bus.write_long(address_space, address, value);
         } else {
-            println!("unmapped write_long({:?}, {:08x}, {:08x})", address_space, address, value);
+            panic!("unmapped write_long({:?}, {:08x}, {:08x})", address_space, address, value);
         }
         
     }
