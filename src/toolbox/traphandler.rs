@@ -36,13 +36,38 @@ impl ToolboxTrapHandler {
         println!("Gestalt({:?})", selector);
 
         // result
-        let (code, value): (i32, u32) = match &selector.0 {
+        let (code, _value): (i32, u32) = match &selector.0 {
             b"te  " => (0, 0),
             _ => (-5551, 0)
         };
 
         dar[0+0] = code as u32; // D0 = result code
         dar[8+0] = 0xcafebabe as u32; // A0 = Some global result
+        TrapResult::Continue
+    }
+
+    fn HFSDispatch(&mut self, core: &mut impl Core, _pc: u32) -> TrapResult {
+        println!("HFSDispatch()");
+        TrapResult::Halt
+        
+    }
+
+    fn CurResFile(&mut self, core: &mut impl Core, _pc: u32) -> TrapResult {
+        println!("CurResFile()");
+        core.pop_16();
+        core.push_16(0x1234);
+        TrapResult::Continue
+    }
+
+    fn GetTrapAddress(&mut self, core: &mut impl Core, _pc: u32) -> TrapResult {
+        let dar : &mut [u32; 16] = core.dar();
+        // Input: D0 => trap number
+        // Output: A0 => Handler address
+
+        // TODO: This needs to be mocked, so it maps to an address space that triggers the trap anyway
+        println!("GetTrapAddress({:02x})", dar[0+0]);
+
+        dar[8+0] = 0xcafebabe;
         TrapResult::Continue
     }
 
@@ -88,6 +113,10 @@ impl TrapHandler for ToolboxTrapHandler {
     fn line_1010_emualtion(&mut self, core: &mut impl Core, ir: u16, pc: u32) -> TrapResult {
         match ir {
             0xa1ad => self.Gestalt(core, pc),
+            0xa260 => self.HFSDispatch(core, pc),
+            0xa346 => self.GetTrapAddress(core, pc),
+            0xa746 => self.GetTrapAddress(core, pc),
+            0xa994 => self.CurResFile(core, pc),
             0xa9c9 => self.SysError(core, pc),
             0xa9f0 => self.LoadSeg(core, pc),
             0xa9fd => self.GetScrap(core, pc),

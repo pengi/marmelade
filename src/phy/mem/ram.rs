@@ -9,7 +9,7 @@ pub struct RAM {
 
 impl RAM {
     pub fn new(size: usize) -> RAM {
-        RAM { content: vec![0xff; size] }
+        RAM { content: vec![0x00; size] }
     }
 }
 
