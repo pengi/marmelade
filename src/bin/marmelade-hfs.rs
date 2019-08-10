@@ -17,7 +17,8 @@ use marmelade::{
     },
     types::{
         OSType
-    }
+    },
+    tools::hexdump
 };
 
 use std::io::Read;
@@ -31,6 +32,8 @@ fn main() {
         (@arg img: +required -i --image +takes_value "Image file")
         (@arg file: -f --file +takes_value "File to read")
         (@arg rsrc: -r --rsrc "Open resource fork instead of data")
+        (@arg type: -T --type +takes_value "hexdump given rsrc type")
+        (@arg id: -I --id +takes_value "hexdump given rsrc id")
     ).get_matches();
 
     let imgfile = matches.value_of("img").unwrap();
@@ -40,7 +43,19 @@ fn main() {
 
     if let Some(file) = matches.value_of("file") {
         let use_rsrc = matches.occurrences_of("rsrc") > 0;
-        if let Err(err) = open_file(&fs, file, use_rsrc) {
+
+        let mut type_id = None;
+
+        if let Some(rsrc_type) = matches.value_of("type") {
+            if let Some(rsrc_id) = matches.value_of("id") {
+                type_id = Some((
+                    OSType::from(rsrc_type.as_bytes()),
+                    i16::from_str_radix(rsrc_id, 10).unwrap()
+                ));
+            }
+        }
+
+        if let Err(err) = open_file(&fs, file, use_rsrc, type_id) {
             eprintln!("Error: {}", err);
         }
     } else {
@@ -49,7 +64,7 @@ fn main() {
     }
 }
 
-fn open_file(fs: &hfs::HfsImage, filename: &str, use_rsrc: bool) -> std::io::Result<()> {
+fn open_file(fs: &hfs::HfsImage, filename: &str, use_rsrc: bool, type_id: Option<(OSType, i16)>) -> std::io::Result<()> {
     if let Some(file) = fs.locate(filename) {
         println!("File: {:#?}", file);
         if let HfsObjRef::FileRef(file) = file {
@@ -58,9 +73,15 @@ fn open_file(fs: &hfs::HfsImage, filename: &str, use_rsrc: bool) -> std::io::Res
                 let rsrc_adaptor = SerialAdaptor::new(content);
                 let rsrc = Rsrc::new(rsrc_adaptor)?;
                 println!("Content: {:#?}", rsrc);
-                if let Ok(mut storage) = rsrc.open(OSType::from(b"ICN#"), 128) {
-                    println!("Icon:");
-                    icon_render(&mut storage);
+                if let Some((rsrc_type, rsrc_id)) = type_id {
+                    if let Ok(mut storage) = rsrc.open(rsrc_type, rsrc_id) {
+                        hexdump::hexdump(storage.to_vec());
+                    }
+                } else {
+                    if let Ok(mut storage) = rsrc.open(OSType::from(b"ICN#"), 128) {
+                        println!("Icon:");
+                        icon_render(&mut storage);
+                    }
                 }
             } else {
                 let mut s = String::new();

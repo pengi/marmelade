@@ -33,6 +33,13 @@ impl From<&[u8; 4]> for OSType {
     }
 }
 
+impl From<&[u8]> for OSType {
+    fn from(b: &[u8]) -> OSType {
+        assert_eq!(b.len(), 4);
+        OSType([b[0], b[1], b[2], b[3]])
+    }
+}
+
 #[derive(PartialEq)]
 #[derive(PartialOrd)]
 #[derive(Clone)]
