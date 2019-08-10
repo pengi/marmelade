@@ -50,14 +50,14 @@ impl<'phy, M : AddressBus, T : TrapHandler> Memory for PhyMemory<'phy, M, T> {
 
 pub fn print_core_header<M : AddressBus, T : TrapHandler>(_tbx : &Phy<M, T>) {
     println!(
-        "PC...... IR.. SSP'.... USP'....   D0...... D1...... D2...... D3...... D4...... D5...... D6...... D7......   A0...... A1...... A2...... A3...... A4...... A5...... A6...... A7......   Sflag... I# INT.mask Xflag... Cflag... Vflag... Nflag... Z'flag.. state");
+        "PC...... IR.. SSP'.... USP'....  D0...... D1...... D2...... D3...... D4...... D5...... D6...... D7......  A0...... A1...... A2...... A3...... A4...... A5...... A6...... A7......  Sflag... I# INT.mask Xflag... Cflag... Vflag... Nflag... Z'flag.. state");
 }
 
 pub fn print_core_line<M : AddressBus, T : TrapHandler>(tbx : &Phy<M, T>) {
     let c = &tbx.core;
 
     print!(
-        "{:08x} {:04x} {:08x} {:08x}   {:08x} {:08x} {:08x} {:08x} {:08x} {:08x} {:08x} {:08x}   {:08x} {:08x} {:08x} {:08x} {:08x} {:08x} {:08x} {:08x}   {:08x} {:02x} {:08x} {:08x} {:08x} {:08x} {:08x} {:08x} {:?}   ",
+        "{:08x} {:04x} {:08x} {:08x}  {:08x} {:08x} {:08x} {:08x} {:08x} {:08x} {:08x} {:08x}  {:08x} {:08x} {:08x} {:08x} {:08x} {:08x} {:08x} {:08x}  {:08x} {:02x} {:08x} {:08x} {:08x} {:08x} {:08x} {:08x} {:?}  ",
         c.pc, c.ir, c.inactive_ssp, c.inactive_usp,
         c.dar[0], c.dar[1], c.dar[2], c.dar[3], c.dar[4], c.dar[5], c.dar[6], c.dar[7],
         c.dar[8], c.dar[9], c.dar[10], c.dar[11], c.dar[12], c.dar[13], c.dar[14], c.dar[15],
@@ -65,6 +65,7 @@ pub fn print_core_line<M : AddressBus, T : TrapHandler>(tbx : &Phy<M, T>) {
     );
 
     let mem = PhyMemory::new(&tbx);
+    print!("${:04x}  ", mem.read_word(PC(c.pc)));
     if let Ok((_, inst)) = disassemble(PC(c.pc), &mem) {
         let mut inst = format!("{}", inst);
         if let Some(delim) = inst.find("\t") {
@@ -74,7 +75,7 @@ pub fn print_core_line<M : AddressBus, T : TrapHandler>(tbx : &Phy<M, T>) {
             println!("{}", inst);
         }
     } else {
-        println!("${:04x}", mem.read_word(PC(c.pc)));
+        println!("");
     }
 }
 
