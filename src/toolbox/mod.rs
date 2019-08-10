@@ -76,6 +76,9 @@ impl Toolbox {
             Box::new(toolbox.segment_loader.clone())
         );
 
+        // Globals RAM
+        mem.add_prefix(Prefix::new(0x0000_0000, 20), Box::new(RAM::from(vec![0x00u8; 0x1000])));
+
         // Application RAM
         mem.add_prefix(Prefix::new(0x10e0_0000, 12), Box::new(RAM::new(0x0010_0000)));
         // Stack
@@ -86,7 +89,10 @@ impl Toolbox {
         for i in 0..16 {
             phy.core.dar[i] = 0x01010101u32 * i as u32;
         }
+
+        phy.core.dar[0+3] = 0x10e0_0000; // D3 - Start of global variables?
         phy.core.dar[8+5] = 0x10e8_0000; // A5 - application base
+        phy.core.dar[8+6] = 0xdead_beef; // A6 - next frame - TODO: handle caller correctly?
         phy.core.dar[8+7] = 0x1100_0000; // A7 - stack pointer
 
         // Load jump table to RAM, at A5 + 32
