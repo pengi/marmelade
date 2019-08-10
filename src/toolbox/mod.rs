@@ -24,8 +24,12 @@ use crate::{
         },
         mem::{
             MuxMem,
+            LogMem,
             RAM,
-            RcMem
+            RcMem,
+            log::{
+                LOG_DATA
+            }
         }
     },
     types::OSType
@@ -36,7 +40,7 @@ use segment_loader::SegmentLoader;
 
 pub use r68k_emu::cpu::Core;
 
-type ToolboxPhy = Phy<MuxMem, ToolboxTrapHandler>;
+type ToolboxPhy = Phy<LogMem<MuxMem>, ToolboxTrapHandler>;
 
 pub struct Toolbox {
     _img: HfsImage,
@@ -77,8 +81,11 @@ impl Toolbox {
         // Stack
         mem.add_prefix(Prefix::new(0x10f0_0000, 12), Box::new(RAM::new(0x0010_0000)));
 
-        let mut phy = Phy::new(mem, handlers);
+        let mut phy = Phy::new(LogMem::new(mem, LOG_DATA), handlers);
 
+        for i in 0..16 {
+            phy.core.dar[i] = 0x01010101u32 * i as u32;
+        }
         phy.core.dar[8+5] = 0x10e8_0000; // A5 - application base
         phy.core.dar[8+7] = 0x1100_0000; // A7 - stack pointer
 
@@ -97,7 +104,9 @@ impl Toolbox {
     fn load_jump_table(core: &mut impl Core, rsrc: &Rsrc, address: u32) -> std::io::Result<()> {
         let jumptable_vec = rsrc.open(OSType::from(b"CODE"), 0)?.to_vec();
         for (i, data) in jumptable_vec.iter().enumerate() {
-            core.write_data_byte(address + i as u32, *data as u32).unwrap();
+            // write_program_byte or write_data_byte differs only in how it's logged currently
+            // jump table is part code part data, and no memory protection is active
+            core.write_program_byte(address + i as u32, *data as u32).unwrap();
         }
         Ok(())
     }
