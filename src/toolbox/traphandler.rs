@@ -5,7 +5,8 @@ use super::{
 use crate::phy::{
     TrapHandler,
     TrapResult,
-    Core
+    Core,
+    stackable::Stackable
 };
 
 use crate::types::OSType;
@@ -46,7 +47,7 @@ impl ToolboxTrapHandler {
         TrapResult::Continue
     }
 
-    fn HFSDispatch(&mut self, core: &mut impl Core, _pc: u32) -> TrapResult {
+    fn HFSDispatch(&mut self, _core: &mut impl Core, _pc: u32) -> TrapResult {
         println!("HFSDispatch()");
         TrapResult::Halt
         
@@ -54,8 +55,7 @@ impl ToolboxTrapHandler {
 
     fn CurResFile(&mut self, core: &mut impl Core, _pc: u32) -> TrapResult {
         println!("CurResFile()");
-        core.pop_16();
-        core.push_16(0x1234);
+        0x1234u16.stack_replace(core);
         TrapResult::Continue
     }
 
@@ -94,17 +94,16 @@ impl ToolboxTrapHandler {
         }
     }
 
-    fn GetScrap(&mut self, core: &mut impl Core, _pc: u32) -> TrapResult {
-        let hDest : u32 = core.pop_32() as u32;
-        let theType : u32 = core.pop_32() as u32;
-        let offset : i32 = core.pop_32() as i32;
-        core.pop_32(); // Space for result
-
-        let theType = OSType::from(theType);
-
+    fn GetScrap(&mut self, _core: &mut impl Core, _pc: u32, hDest: u32, theType: OSType, offset: i32) -> i32 {
         println!("GetScrap(${:08x}, {:?}, {}) = -102", hDest, theType, offset);
+        -102i32
+    }
 
-        core.push_32((-102i32) as u32);
+    fn invoke_GetScrap(&mut self, core: &mut impl Core, pc: u32) -> TrapResult {
+        let arg_1 = Stackable::stack_pop(core);
+        let arg_2 = Stackable::stack_pop(core);
+        let arg_3 = Stackable::stack_pop(core);
+        self.GetScrap(core, pc, arg_1, arg_2, arg_3).stack_replace(core);
         TrapResult::Continue
     }
 }
@@ -119,7 +118,7 @@ impl TrapHandler for ToolboxTrapHandler {
             0xa994 => self.CurResFile(core, pc),
             0xa9c9 => self.SysError(core, pc),
             0xa9f0 => self.LoadSeg(core, pc),
-            0xa9fd => self.GetScrap(core, pc),
+            0xa9fd => self.invoke_GetScrap(core, pc),
             _ => {
                 println!("Unimplemented trap {:04x} @ {:08x}", ir, pc);
                 TrapResult::Halt

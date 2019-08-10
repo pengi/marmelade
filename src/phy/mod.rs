@@ -1,5 +1,6 @@
 pub mod mem;
 pub mod prefix;
+pub mod stackable;
 mod trace;
 
 use r68k_emu::{

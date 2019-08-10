@@ -5,6 +5,13 @@ use chrono::NaiveDateTime;
 #[derive(SerialRead)]
 pub struct OSType (pub [u8;4]);
 
+impl OSType {
+    pub fn as_u32(&self) -> u32 {
+        let [a,b,c,d] = self.0;
+        ((a as u32) << 24) | ((b as u32) << 16) | ((c as u32) << 8) | (d as u32)
+    }
+}
+
 impl std::fmt::Debug for OSType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "\'{}{}{}{}\'",
@@ -53,8 +60,7 @@ impl From<u32> for OSType {
 
 impl From<OSType> for u32 {
     fn from(t: OSType) -> u32 {
-        let [a,b,c,d] = t.0;
-        ((a as u32) << 24) | ((b as u32) << 16) | ((c as u32) << 8) | (d as u32)
+        t.as_u32()
     }
 }
 
