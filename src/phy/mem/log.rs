@@ -20,39 +20,39 @@ impl<M:AddressBus> AddressBus for LogMem<M> {
     fn read_byte(&self, address_space: AddressSpace, address: u32) -> u32 {
         let value = self.child.read_byte(address_space, address);
         if self.should_log(address_space) {
-            println!("read_byte({:?}, {:08x}) = {:02x}", address_space, address, value);
+            println!("{:02x} = mem[{:08x}]", value, address);
         }
         value
     }
     fn read_word(&self, address_space: AddressSpace, address: u32) -> u32 {
         let value = self.child.read_word(address_space, address);
         if self.should_log(address_space) {
-            println!("read_word({:?}, {:08x}) = {:04x}", address_space, address, value);
+            println!("{:04x} = mem[{:08x}]", value, address);
         }
         value
     }
     fn read_long(&self, address_space: AddressSpace, address: u32) -> u32 {
         let value = self.child.read_long(address_space, address);
         if self.should_log(address_space) {
-            println!("read_long({:?}, {:08x}) = {:08x}", address_space, address, value);
+            println!("{:08x} = mem[{:08x}]", value, address);
         }
         value
     }
     fn write_byte(&mut self, address_space: AddressSpace, address: u32, value: u32) {
         if self.should_log(address_space) {
-            println!("write_byte({:?}, {:08x}, {:02x})", address_space, address, value);
+            println!("mem[{:08x}] = {:02x}", address, value);
         }
         self.child.write_byte(address_space, address, value);
     }
     fn write_word(&mut self, address_space: AddressSpace, address: u32, value: u32) {
         if self.should_log(address_space) {
-            println!("write_word({:?}, {:08x}, {:04x})", address_space, address, value);
+            println!("mem[{:08x}] = {:04x}", address, value);
         }
         self.child.write_word(address_space, address, value);
     }
     fn write_long(&mut self, address_space: AddressSpace, address: u32, value: u32) {
         if self.should_log(address_space) {
-            println!("write_long({:?}, {:08x}, {:08x})", address_space, address, value);
+            println!("mem[{:08x}] = {:08x}", address, value);
         }
         self.child.write_long(address_space, address, value);
     }

@@ -80,7 +80,7 @@ impl<T : TrapHandler> Callbacks for PhyCallbacks<T> {
                 self.handler.line_1010_emualtion(core, ir, pc)
             },
             _ => {
-                println!("Unmatched handler: {:?}", ex);
+                trace::print_exception("unknown exception", ex);
                 TrapResult::Halt
             }
         };
