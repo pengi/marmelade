@@ -1,4 +1,4 @@
-pub fn hexdump_w(vec: Vec<u8>, width: usize) {
+pub fn hexdump_w(vec: &Vec<u8>, width: usize) {
     let mut offset = 0;
     for chunk in vec.chunks(width) {
         print!("{:5x} |", offset);
@@ -22,6 +22,6 @@ pub fn hexdump_w(vec: Vec<u8>, width: usize) {
     }
 }
 
-pub fn hexdump(vec: Vec<u8>) {
+pub fn hexdump(vec: &Vec<u8>) {
     hexdump_w(vec, 16)
 }

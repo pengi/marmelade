@@ -85,15 +85,9 @@ impl ToolboxTrapHandler {
     }
 
     fn LoadSeg(&mut self, core: &mut impl Core, code_id: i16) -> Option<()> {
-        if let Some(address) = self.toolbox.segment_loader.borrow_mut().load(code_id) {
-            let pc = *core.pc(); // PC points to the instruction after the trap
-            // Read metadata from jump table
-            let offset = core.read_data_word(pc - 8).unwrap(); // offset field
-
-            // Update jump table to jump instruction
-            core.write_data_word(pc - 8, (code_id as u16) as u32).unwrap(); // Store section id
-            core.write_data_word(pc - 6, 0x4ef9).unwrap(); // jump absolute long
-            core.write_data_long(pc - 4, offset as u32 + address).unwrap();
+        if let Some(_address) = self.toolbox.segment_loader.borrow_mut().load(code_id) {
+            // The segment is loaded, jump back to the jump table
+            let pc = *core.pc();
             core.jump(pc - 6);
             Some(())
         } else {

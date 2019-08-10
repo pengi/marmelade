@@ -10,7 +10,6 @@ use crate::types::{
     OSType
 };
 
-
 const SEGMENT_MAX_SIZE : u32 = 0x8000;
 
 pub struct SegmentLoader {
@@ -37,6 +36,36 @@ impl SegmentLoader {
 
     pub fn set_toolbox(&mut self, toolbox: Weak<Toolbox>) {
         self.toolbox = toolbox;
+        // New toolbox, therefore reload data
+        self.data = vec![];
+        self.load(0); // Reload jump table
+    }
+
+    fn update_jump_table(&mut self, id: i16, address: u32) {
+        // Only update if first element is the jump table
+        if let Some((0, jt)) = self.data.get_mut(0) {
+            for i in (16..jt.len()).step_by(8) {
+                if let Some(seg) = jt.get_mut(i..i+8) {
+                    // If segment is a load-segment trap instruction
+                    if seg[2] == 0x3f && seg[3] == 0x3c && seg[6] == 0xa9 && seg[7] == 0xf0 {
+                        let offset = (seg[0] as u32) << 8 | (seg[1] as u32);
+                        let cur_id = ((seg[4] as u32) << 8 | (seg[5] as u32)) as i16;
+                        if cur_id == id {
+                            // The offset is not including the segment header
+                            let new_address = offset + address + 4;
+                            seg[0] = seg[4]; // Move resource id to first
+                            seg[1] = seg[5];
+                            seg[2] = 0x4e; // Jump to immediate long address
+                            seg[3] = 0xf9;
+                            seg[4] = ((new_address >> 24) & 0xff) as u8;
+                            seg[5] = ((new_address >> 16) & 0xff) as u8;
+                            seg[6] = ((new_address >> 8) & 0xff) as u8;
+                            seg[7] = ((new_address >> 0) & 0xff) as u8;
+                        }
+                    }
+                }
+            }
+        }
     }
 
     pub fn load(&mut self, id: i16) -> Option<u32> {
@@ -59,6 +88,9 @@ impl SegmentLoader {
             self.data.push((id, data));
 
             println!("Segment loader: loading: {} {} @{:08x}", id, name, address);
+
+            self.update_jump_table(id, address);
+
             Some(address)
         } else {
             println!("Can't load segment {}", id);
@@ -73,7 +105,7 @@ impl AddressBus for SegmentLoader {
         let segment_offset = address % SEGMENT_MAX_SIZE;
         if let Some((_, data)) = self.data.get(segment_idx as usize) {
             // 4 bytes header on segment
-            *data.get(segment_offset as usize + 4).unwrap_or(&0xff) as u32
+            *data.get(segment_offset as usize).unwrap_or(&0xff) as u32
         } else {
             0xff
         }

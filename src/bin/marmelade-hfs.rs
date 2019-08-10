@@ -74,8 +74,8 @@ fn open_file(fs: &hfs::HfsImage, filename: &str, use_rsrc: bool, type_id: Option
                 let rsrc = Rsrc::new(rsrc_adaptor)?;
                 println!("Content: {:#?}", rsrc);
                 if let Some((rsrc_type, rsrc_id)) = type_id {
-                    if let Ok(mut storage) = rsrc.open(rsrc_type, rsrc_id) {
-                        hexdump::hexdump(storage.to_vec());
+                    if let Ok(storage) = rsrc.open(rsrc_type, rsrc_id) {
+                        hexdump::hexdump(&storage.to_vec());
                     }
                 } else {
                     if let Ok(mut storage) = rsrc.open(OSType::from(b"ICN#"), 128) {

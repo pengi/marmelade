@@ -31,8 +31,7 @@ use crate::{
                 LOG_DATA
             }
         }
-    },
-    types::OSType
+    }
 };
 use std::rc::Rc;
 use traphandler::ToolboxTrapHandler;
@@ -79,10 +78,11 @@ impl Toolbox {
         // Globals RAM
         mem.add_prefix(Prefix::new(0x0000_0000, 20), Box::new(RAM::from(vec![0x00u8; 0x1000])));
 
-        // Application RAM
-        mem.add_prefix(Prefix::new(0x10e0_0000, 12), Box::new(RAM::new(0x0010_0000)));
         // Stack
         mem.add_prefix(Prefix::new(0x10f0_0000, 12), Box::new(RAM::new(0x0010_0000)));
+
+        // Application RAM needs to preceed the jump table, since relative to A5
+        mem.add_prefix(Prefix::new(0x1ff0_0000, 12), Box::new(RAM::new(0x0010_0000)));
 
         let mut phy = Phy::new(LogMem::new(mem, LOG_DATA), handlers);
 
@@ -90,30 +90,17 @@ impl Toolbox {
             phy.core.dar[i] = 0x01010101u32 * i as u32;
         }
 
-        phy.core.dar[0+3] = 0x10e0_0000; // D3 - Start of global variables?
-        phy.core.dar[8+5] = 0x10e8_0000; // A5 - application base
+        phy.core.dar[0+3] = 0x1ff0_0000; // D3 - Start of global variables?
+        phy.core.dar[8+5] = 0x2000_0000 - 32; // A5 - application base, 32 bytes prior to jump table
         phy.core.dar[8+6] = 0xdead_beef; // A6 - next frame - TODO: handle caller correctly?
         phy.core.dar[8+7] = 0x1100_0000; // A7 - stack pointer
 
-        // Load jump table to RAM, at A5 + 32
-        Self::load_jump_table(&mut phy.core, &toolbox.rsrc, 0x10e8_0000 + 32)?;
-
-        // Start at first entry of jump table ()
-        phy.core.jump(0x10e8_0000 + 32 + 16 + 2);
+        // Start at first entry of jump table 18(A5)
+        phy.core.jump(0x2000_0000 + 16 + 2);
 
         // Push pointer, of some kind...
-        phy.core.push_32(0xbaddecaf);
+        phy.core.push_32(0xcafebabe);
 
         Ok(phy)
-    }
-
-    fn load_jump_table(core: &mut impl Core, rsrc: &Rsrc, address: u32) -> std::io::Result<()> {
-        let jumptable_vec = rsrc.open(OSType::from(b"CODE"), 0)?.to_vec();
-        for (i, data) in jumptable_vec.iter().enumerate() {
-            // write_program_byte or write_data_byte differs only in how it's logged currently
-            // jump table is part code part data, and no memory protection is active
-            core.write_program_byte(address + i as u32, *data as u32).unwrap();
-        }
-        Ok(())
     }
 }
