@@ -80,3 +80,10 @@ impl Stackable for OSType {
         OSType::from(core.pop_32())
     }
 }
+
+impl Stackable for () {
+    fn stack_push(&self, _core: &mut impl Core) {
+    }
+    fn stack_pop(_core: &mut impl Core) -> Self {
+    }
+}

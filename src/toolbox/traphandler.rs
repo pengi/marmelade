@@ -28,7 +28,7 @@ impl ToolboxTrapHandler {
 
 #[allow(non_snake_case)] // This function names comes from old Mac structs
 impl ToolboxTrapHandler {
-    fn Gestalt(&mut self, core: &mut impl Core, _pc: u32) -> TrapResult {
+    fn Gestalt(&mut self, core: &mut impl Core) -> TrapResult {
         let dar : &mut [u32; 16] = core.dar();
         // args
         let selector = OSType::from(dar[0+0]);
@@ -47,19 +47,27 @@ impl ToolboxTrapHandler {
         TrapResult::Continue
     }
 
-    fn HFSDispatch(&mut self, _core: &mut impl Core, _pc: u32) -> TrapResult {
+    fn HFSDispatch(&mut self, _core: &mut impl Core) -> TrapResult {
         println!("HFSDispatch()");
         TrapResult::Halt
         
     }
 
-    fn CurResFile(&mut self, core: &mut impl Core, _pc: u32) -> TrapResult {
+    fn CurResFile(&mut self, _core: &mut impl Core) -> Option<i16> {
         println!("CurResFile()");
-        0x1234u16.stack_replace(core);
-        TrapResult::Continue
+        Some(1234)
     }
 
-    fn GetTrapAddress(&mut self, core: &mut impl Core, _pc: u32) -> TrapResult {
+    fn invoke_CurResFile(&mut self, core: &mut impl Core) -> TrapResult {
+        if let Some(result) = self.CurResFile(core) {
+            result.stack_replace(core);
+            TrapResult::Continue
+        } else {
+            TrapResult::Halt
+        }
+    }
+
+    fn GetTrapAddress(&mut self, core: &mut impl Core) -> TrapResult {
         let dar : &mut [u32; 16] = core.dar();
         // Input: D0 => trap number
         // Output: A0 => Handler address
@@ -71,54 +79,68 @@ impl ToolboxTrapHandler {
         TrapResult::Continue
     }
 
-    fn SysError(&mut self, core: &mut impl Core, _pc: u32) -> TrapResult {
+    fn SysError(&mut self, core: &mut impl Core) -> TrapResult {
         println!("SysError code: {}", core.dar()[0] as i32);
         TrapResult::Halt
     }
 
-    fn LoadSeg(&mut self, core: &mut impl Core, pc: u32) -> TrapResult {
-        let code_id = core.pop_16() as i16;
+    fn LoadSeg(&mut self, core: &mut impl Core, code_id: i16) -> Option<()> {
         if let Some(address) = self.toolbox.segment_loader.borrow_mut().load(code_id) {
+            let pc = *core.pc(); // PC points to the instruction after the trap
             // Read metadata from jump table
-            let offset = core.read_data_word(pc - 6).unwrap(); // offset field
+            let offset = core.read_data_word(pc - 8).unwrap(); // offset field
 
             // Update jump table to jump instruction
-            core.write_data_word(pc - 6, (code_id as u16) as u32).unwrap(); // Store section id
-            core.write_data_word(pc - 4, 0x4ef9).unwrap(); // jump absolute long
-            core.write_data_long(pc - 2, offset as u32 + address).unwrap();
-            core.jump(pc - 4);
-            TrapResult::Continue
+            core.write_data_word(pc - 8, (code_id as u16) as u32).unwrap(); // Store section id
+            core.write_data_word(pc - 6, 0x4ef9).unwrap(); // jump absolute long
+            core.write_data_long(pc - 4, offset as u32 + address).unwrap();
+            core.jump(pc - 6);
+            Some(())
         } else {
             println!("Unknown segment {}", code_id);
+            None
+        }
+    }
+
+    fn invoke_LoadSeg(&mut self, core: &mut impl Core) -> TrapResult {
+        let arg_1 = Stackable::stack_pop(core);
+        if let Some(result) = self.LoadSeg(core, arg_1) {
+            result.stack_replace(core);
+            TrapResult::Continue
+        } else {
             TrapResult::Halt
         }
     }
 
-    fn GetScrap(&mut self, _core: &mut impl Core, _pc: u32, hDest: u32, theType: OSType, offset: i32) -> i32 {
+    fn GetScrap(&mut self, _core: &mut impl Core, hDest: u32, theType: OSType, offset: i32) -> Option<i32> {
         println!("GetScrap(${:08x}, {:?}, {}) = -102", hDest, theType, offset);
-        -102i32
+        Some(-102i32)
     }
 
-    fn invoke_GetScrap(&mut self, core: &mut impl Core, pc: u32) -> TrapResult {
+    fn invoke_GetScrap(&mut self, core: &mut impl Core) -> TrapResult {
         let arg_1 = Stackable::stack_pop(core);
         let arg_2 = Stackable::stack_pop(core);
         let arg_3 = Stackable::stack_pop(core);
-        self.GetScrap(core, pc, arg_1, arg_2, arg_3).stack_replace(core);
-        TrapResult::Continue
+        if let Some(result) = self.GetScrap(core, arg_1, arg_2, arg_3) {
+            result.stack_replace(core);
+            TrapResult::Continue
+        } else {
+            TrapResult::Halt
+        }
     }
 }
 
 impl TrapHandler for ToolboxTrapHandler {
-    fn line_1010_emualtion(&mut self, core: &mut impl Core, ir: u16, pc: u32) -> TrapResult {
+    fn line_1010_emualtion(&mut self, core: &mut impl Core, ir: u16, _pc: u32) -> TrapResult {
         match ir {
-            0xa1ad => self.Gestalt(core, pc),
-            0xa260 => self.HFSDispatch(core, pc),
-            0xa346 => self.GetTrapAddress(core, pc),
-            0xa746 => self.GetTrapAddress(core, pc),
-            0xa994 => self.CurResFile(core, pc),
-            0xa9c9 => self.SysError(core, pc),
-            0xa9f0 => self.LoadSeg(core, pc),
-            0xa9fd => self.invoke_GetScrap(core, pc),
+            0xa1ad => self.Gestalt(core),
+            0xa260 => self.HFSDispatch(core),
+            0xa346 => self.GetTrapAddress(core),
+            0xa746 => self.GetTrapAddress(core),
+            0xa994 => self.invoke_CurResFile(core),
+            0xa9c9 => self.SysError(core),
+            0xa9f0 => self.invoke_LoadSeg(core),
+            0xa9fd => self.invoke_GetScrap(core),
             _ => TrapResult::Unimplemented
         }
     }
