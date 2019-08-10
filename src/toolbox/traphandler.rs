@@ -119,10 +119,7 @@ impl TrapHandler for ToolboxTrapHandler {
             0xa9c9 => self.SysError(core, pc),
             0xa9f0 => self.LoadSeg(core, pc),
             0xa9fd => self.invoke_GetScrap(core, pc),
-            _ => {
-                println!("Unimplemented trap {:04x} @ {:08x}", ir, pc);
-                TrapResult::Halt
-            }
+            _ => TrapResult::Unimplemented
         }
     }
 }

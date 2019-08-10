@@ -51,9 +51,10 @@ impl<M : AddressBus, T : TrapHandler> Phy<M, T> {
 }
 
 pub enum TrapResult {
-    Exception, // Run as exception handler
-    Continue,  // Continue as normal operation
-    Halt,      // Halt CPU
+    Unimplemented, // Tell parent to look for the implementation elsewhere
+    Exception,     // Run as exception handler
+    Continue,      // Continue as normal operation
+    Halt,          // Halt CPU
 }
 
 pub trait TrapHandler {
@@ -80,14 +81,16 @@ impl<T : TrapHandler> Callbacks for PhyCallbacks<T> {
             Exception::UnimplementedInstruction(ir, pc, 10) => {
                 self.handler.line_1010_emualtion(core, ir, pc)
             },
-            _ => {
-                trace::print_exception("unknown exception", ex);
-                TrapResult::Halt
-            }
+            _ => TrapResult::Unimplemented
         };
         match action {
             TrapResult::Exception => Err(ex),
             TrapResult::Continue => Ok(Cycles(1)),
+            TrapResult::Unimplemented => {
+                trace::print_exception("Unimplemented exception", ex);
+                core.stop_instruction_processing();
+                Ok(Cycles(1))
+            }
             TrapResult::Halt => {
                 core.stop_instruction_processing();
                 Ok(Cycles(1))
