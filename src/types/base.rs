@@ -3,7 +3,7 @@ use chrono::NaiveDateTime;
 
 #[derive(PartialEq)]
 #[derive(SerialRead)]
-pub struct OSType ([u8;4]);
+pub struct OSType (pub [u8;4]);
 
 impl std::fmt::Debug for OSType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -37,6 +37,24 @@ impl From<&[u8]> for OSType {
     fn from(b: &[u8]) -> OSType {
         assert_eq!(b.len(), 4);
         OSType([b[0], b[1], b[2], b[3]])
+    }
+}
+
+impl From<u32> for OSType {
+    fn from(b: u32) -> OSType {
+        OSType([
+            ((b>>24) & 0xff) as u8,
+            ((b>>16) & 0xff) as u8,
+            ((b>>8) & 0xff) as u8,
+            ((b>>0) & 0xff) as u8,
+        ])
+    }
+}
+
+impl From<OSType> for u32 {
+    fn from(t: OSType) -> u32 {
+        let [a,b,c,d] = t.0;
+        ((a as u32) << 24) | ((b as u32) << 16) | ((c as u32) << 8) | (d as u32)
     }
 }
 

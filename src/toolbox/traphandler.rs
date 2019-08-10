@@ -8,6 +8,8 @@ use crate::phy::{
     Core
 };
 
+use crate::types::OSType;
+
 use std::rc::Rc;
 
 pub struct ToolboxTrapHandler {
@@ -25,6 +27,30 @@ impl ToolboxTrapHandler {
 
 #[allow(non_snake_case)] // This function names comes from old Mac structs
 impl ToolboxTrapHandler {
+    fn Gestalt(&mut self, core: &mut impl Core, _pc: u32) -> TrapResult {
+        let dar : &mut [u32; 16] = core.dar();
+        // args
+        let selector = OSType::from(dar[0+0]);
+
+        // action
+        println!("Gestalt({:?})", selector);
+
+        // result
+        let (code, value): (i32, u32) = match &selector.0 {
+            b"te  " => (0, 0),
+            _ => (-5551, 0)
+        };
+
+        dar[0+0] = code as u32; // D0 = result code
+        dar[8+0] = 0xcafebabe as u32; // A0 = Some global result
+        TrapResult::Continue
+    }
+
+    fn SysError(&mut self, core: &mut impl Core, _pc: u32) -> TrapResult {
+        println!("SysError code: {}", core.dar()[0] as i32);
+        TrapResult::Halt
+    }
+
     fn LoadSeg(&mut self, core: &mut impl Core, pc: u32) -> TrapResult {
         let code_id = core.pop_16() as i16;
         if let Some(address) = self.toolbox.segment_loader.borrow_mut().load(code_id) {
@@ -42,12 +68,29 @@ impl ToolboxTrapHandler {
             TrapResult::Halt
         }
     }
+
+    fn GetScrap(&mut self, core: &mut impl Core, _pc: u32) -> TrapResult {
+        let hDest : u32 = core.pop_32() as u32;
+        let theType : u32 = core.pop_32() as u32;
+        let offset : i32 = core.pop_32() as i32;
+        core.pop_32(); // Space for result
+
+        let theType = OSType::from(theType);
+
+        println!("GetScrap(${:08x}, {:?}, {}) = -102", hDest, theType, offset);
+
+        core.push_32((-102i32) as u32);
+        TrapResult::Continue
+    }
 }
 
 impl TrapHandler for ToolboxTrapHandler {
     fn line_1010_emualtion(&mut self, core: &mut impl Core, ir: u16, pc: u32) -> TrapResult {
         match ir {
+            0xa1ad => self.Gestalt(core, pc),
+            0xa9c9 => self.SysError(core, pc),
             0xa9f0 => self.LoadSeg(core, pc),
+            0xa9fd => self.GetScrap(core, pc),
             _ => {
                 println!("Unimplemented trap {:04x} @ {:08x}", ir, pc);
                 TrapResult::Halt
