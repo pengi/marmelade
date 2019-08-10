@@ -38,7 +38,7 @@ impl<M : AddressBus, T : TrapHandler> Phy<M, T> {
 
     pub fn run(&mut self) -> () {
         trace::print_core_header(&self);
-        for _ in 0..100 {
+        loop {
             trace::print_core_line(&self);
             self.core.execute_with_state(1, &mut self.callbacks);
             if self.core.processing_state == ProcessingState::Halted || self.core.processing_state == ProcessingState::Stopped {
