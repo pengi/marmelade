@@ -28,6 +28,31 @@ impl ToolboxTrapHandler {
 
 #[allow(non_snake_case)] // This function names comes from old Mac structs
 impl ToolboxTrapHandler {
+    fn do_nothing(&mut self, _core: &mut impl Core, name: &str) -> TrapResult {
+        println!("Calling: {}", name);
+        TrapResult::Continue
+    }
+
+    fn InitDialogs(&mut self, _core: &mut impl Core, resumeProc: u32) -> Option<()> {
+        println!("InitDialogs(${:08x})", resumeProc);
+        Some(())
+    }
+
+    fn invoke_InitDialogs(&mut self, core: &mut impl Core) -> TrapResult {
+        let arg_1 = Stackable::stack_pop(core);
+        if let Some(result) = self.InitDialogs(core, arg_1) {
+            result.stack_replace(core);
+            TrapResult::Continue
+        } else {
+            TrapResult::Halt
+        }
+    }
+
+    fn MaxApplZone(&mut self, core: &mut impl Core) -> TrapResult {
+        core.dar()[0+0] = 0x01000000;
+        TrapResult::Continue
+    }
+
     fn Gestalt(&mut self, core: &mut impl Core) -> TrapResult {
         let dar : &mut [u32; 16] = core.dar();
         // args
@@ -127,6 +152,16 @@ impl ToolboxTrapHandler {
 impl TrapHandler for ToolboxTrapHandler {
     fn line_1010_emualtion(&mut self, core: &mut impl Core, ir: u16, _pc: u32) -> TrapResult {
         match ir {
+            0xa036 => self.do_nothing(core, "MoreMasters"),
+            0xa86e => self.do_nothing(core, "InitGraf"),
+            0xa8fe => self.do_nothing(core, "InitFonts"),
+            0xa032 => self.do_nothing(core, "FlushEvents"),
+            0xa912 => self.do_nothing(core, "InitWindows"),
+            0xa930 => self.do_nothing(core, "InitMenus"),
+            0xa9cc => self.do_nothing(core, "TEInit"),
+            0xa97b => self.invoke_InitDialogs(core),
+            0xa850 => self.do_nothing(core, "InitCursor"),
+            0xa063 => self.MaxApplZone(core),
             0xa1ad => self.Gestalt(core),
             0xa260 => self.HFSDispatch(core),
             0xa346 => self.GetTrapAddress(core),
