@@ -13,12 +13,33 @@ use crate::serialization::{SerialReadStorage, SerialRead};
 
 const SEGMENT_MAX_SIZE : u32 = 0x8000;
 
-#[derive(SerialRead, Default)]
+#[derive(SerialRead, Default, Clone)]
 struct JumpTableHeader {
     _above_a5: u32,
     _below_a5: u32,
     _length: u32,
     offset_a5: u32
+}
+
+#[derive(SerialRead, Default)]
+struct SegmentHeader {
+    _offset: u16,
+    _count: u16
+}
+
+enum Header {
+    JumpTable(JumpTableHeader),
+    Segment(SegmentHeader)
+}
+
+impl Header {
+    fn read(rdr: &mut SerialReadStorage, code_id: i16) -> std::io::Result<Header> {
+        if code_id == 0 {
+            Ok(Header::JumpTable(SerialRead::read(rdr)?))
+        } else {
+            Ok(Header::Segment(SerialRead::read(rdr)?))
+        }
+    }
 }
 
 #[derive(Default)]
@@ -27,7 +48,7 @@ pub struct SegmentLoader {
     address_prefix: u32,
     toolbox: Weak<Toolbox>,
     jump_table_header: JumpTableHeader,
-    data: Vec<(i16, Vec<u8>)>
+    data: Vec<(i16, Header, Vec<u8>)>
 }
 
 
@@ -46,25 +67,33 @@ impl SegmentLoader {
         self.address_base - self.jump_table_header.offset_a5
     }
 
+    pub fn get_start(&self) -> u32 {
+        self.address_base + 2
+    }
+
     pub fn set_toolbox(&mut self, toolbox: Weak<Toolbox>) {
         self.toolbox = toolbox;
         // New toolbox, therefore reload data
         self.data = vec![];
-        self.load(0); // Reload jump table
+        // Reload jump table
+        if let Some(_) = self.load(0) {
+            if let Header::JumpTable(tblheader) = &self.data[0].1 {
+                self.jump_table_header = tblheader.clone();
+            }
+        }
     }
 
     fn update_jump_table(&mut self, id: i16, address: u32) {
         // Only update if first element is the jump table
-        if let Some((0, jt)) = self.data.get_mut(0) {
-            for i in (16..jt.len()).step_by(8) {
+        if let Some((0, _, jt)) = self.data.get_mut(0) {
+            for i in (0..jt.len()).step_by(8) {
                 if let Some(seg) = jt.get_mut(i..i+8) {
                     // If segment is a load-segment trap instruction
                     if seg[2] == 0x3f && seg[3] == 0x3c && seg[6] == 0xa9 && seg[7] == 0xf0 {
                         let offset = (seg[0] as u32) << 8 | (seg[1] as u32);
                         let cur_id = ((seg[4] as u32) << 8 | (seg[5] as u32)) as i16;
                         if cur_id == id {
-                            // The offset is not including the segment header
-                            let new_address = offset + address + 4;
+                            let new_address = offset + address;
                             seg[0] = seg[4]; // Move resource id to first
                             seg[1] = seg[5];
                             seg[2] = 0x4e; // Jump to immediate long address
@@ -85,7 +114,7 @@ impl SegmentLoader {
             let name = toolbox.rsrc.name(OSType::from(b"CODE"), id).ok()?.unwrap_or(PString::from("-"));
 
             // See if already loaded
-            for (idx, (cur_id, _)) in self.data.iter().enumerate() {
+            for (idx, (cur_id,_,  _)) in self.data.iter().enumerate() {
                 if *cur_id == id {
                     let address = idx as u32 * SEGMENT_MAX_SIZE + self.address_base;
                     println!("Segment loader: already loaded: {} {} @{:08x}", id, name, address);
@@ -98,14 +127,13 @@ impl SegmentLoader {
 
             let mut data = toolbox.rsrc.open(OSType::from(b"CODE"), id).ok()?;
 
-            // Special case for jump table, load the globals
-            if id == 0 {
-                self.jump_table_header = JumpTableHeader::read(&mut data).ok()?;
-            }
+            // The header is not included in the content
+            let header = Header::read(&mut data, id).ok()?;
 
+            let start_pos = data.pos() as usize;
+            let data = data.to_vec().split_off(start_pos);
 
-            let data = data.to_vec();
-            self.data.push((id, data));
+            self.data.push((id, header, data));
 
             println!("Segment loader: loading: {} {} @{:08x}", id, name, address);
 
@@ -123,7 +151,7 @@ impl AddressBus for SegmentLoader {
     fn read_byte(&self, _address_space: AddressSpace, address: u32) -> u32 {
         let segment_idx = address / SEGMENT_MAX_SIZE;
         let segment_offset = address % SEGMENT_MAX_SIZE;
-        if let Some((_, data)) = self.data.get(segment_idx as usize) {
+        if let Some((_, _, data)) = self.data.get(segment_idx as usize) {
             // 4 bytes header on segment
             *data.get(segment_offset as usize).unwrap_or(&0xff) as u32
         } else {

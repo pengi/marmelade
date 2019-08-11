@@ -107,7 +107,7 @@ impl Toolbox {
 
 
         // Start at first entry of jump table 18(A5)
-        phy.core.jump(0x2000_0000 + 16 + 2);
+        phy.core.jump(segment_loader.get_start());
 
         // Push pointer, of some kind...
         phy.core.push_32(0xcafebabe);
