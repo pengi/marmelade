@@ -53,7 +53,7 @@ impl Toolbox {
         let toolbox = Rc::new(Toolbox {
             _img: img,
             rsrc,
-            segment_loader: RcMem::new(SegmentLoader::new(0x20000000, 8))
+            segment_loader: RcMem::new(SegmentLoader::new())
         });
 
         Ok(toolbox)
@@ -71,7 +71,7 @@ impl Toolbox {
         segment_loader.set_toolbox(Rc::downgrade(&toolbox));
 
         mem.add_prefix(
-            segment_loader.get_prefix(),
+            segment_loader.set_prefix(0x20000000, 8),
             Box::new(toolbox.segment_loader.clone())
         );
 
@@ -86,14 +86,25 @@ impl Toolbox {
 
         let mut phy = Phy::new(LogMem::new(mem, LOG_DATA), handlers);
 
-        for i in 0..16 {
-            phy.core.dar[i] = 0x01010101u32 * i as u32;
-        }
+        phy.core.dar = [
+            0xd0d0_d0d0, // D0
+            0xd1d1_d1d1, // D1
+            0xd2d2_d2d2, // D2
+            0x1ff0_0000, // D3
+            0xd4d4_d4d4, // D4
+            0xd5d5_d5d5, // D5
+            0xd6d6_d6d6, // D6
+            0xd7d7_d7d7, // D7
+            0x0000_0f00, // A0 ? - initial address to finder info?
+            0xa1a1_a1a1, // A1
+            0xa2a2_a2a2, // A2
+            0xa3a3_a3a3, // A3
+            0xa4a4_a4a4, // A4
+            segment_loader.get_a5(), // A5 - application base (jump table - 32B)
+            0xa6a6_a6a6, // A6 - stack frame
+            0x1100_0000  // A7 - stack pointer
+        ];
 
-        phy.core.dar[0+3] = 0x1ff0_0000; // D3 - Start of global variables?
-        phy.core.dar[8+5] = 0x2000_0000 - 32; // A5 - application base, 32 bytes prior to jump table
-        phy.core.dar[8+6] = 0xdead_beef; // A6 - next frame - TODO: handle caller correctly?
-        phy.core.dar[8+7] = 0x1100_0000; // A7 - stack pointer
 
         // Start at first entry of jump table 18(A5)
         phy.core.jump(0x2000_0000 + 16 + 2);

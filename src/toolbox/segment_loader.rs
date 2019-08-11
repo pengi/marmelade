@@ -9,29 +9,41 @@ use crate::types::{
     PString,
     OSType
 };
+use crate::serialization::{SerialReadStorage, SerialRead};
 
 const SEGMENT_MAX_SIZE : u32 = 0x8000;
 
+#[derive(SerialRead, Default)]
+struct JumpTableHeader {
+    _above_a5: u32,
+    _below_a5: u32,
+    _length: u32,
+    offset_a5: u32
+}
+
+#[derive(Default)]
 pub struct SegmentLoader {
     address_base: u32,
     address_prefix: u32,
     toolbox: Weak<Toolbox>,
+    jump_table_header: JumpTableHeader,
     data: Vec<(i16, Vec<u8>)>
 }
 
 
 impl SegmentLoader {
-    pub fn new(address_base: u32, address_prefix: u32) -> SegmentLoader {
-        SegmentLoader {
-            address_base,
-            address_prefix,
-            toolbox: Weak::new(),
-            data: vec![]
-        }
+    pub fn new() -> SegmentLoader {
+        Default::default()
     }
 
-    pub fn get_prefix(&self) -> Prefix {
+    pub fn set_prefix(&mut self, address_base: u32, address_prefix: u32) -> Prefix {
+        self.address_base = address_base;
+        self.address_prefix = address_prefix;
         Prefix::new(self.address_base, self.address_prefix)
+    }
+
+    pub fn get_a5(&self) -> u32 {
+        self.address_base - self.jump_table_header.offset_a5
     }
 
     pub fn set_toolbox(&mut self, toolbox: Weak<Toolbox>) {
@@ -84,7 +96,15 @@ impl SegmentLoader {
             let idx = self.data.len();
             let address = idx as u32 * SEGMENT_MAX_SIZE + self.address_base;
 
-            let data = toolbox.rsrc.open(OSType::from(b"CODE"), id).ok()?.to_vec();
+            let mut data = toolbox.rsrc.open(OSType::from(b"CODE"), id).ok()?;
+
+            // Special case for jump table, load the globals
+            if id == 0 {
+                self.jump_table_header = JumpTableHeader::read(&mut data).ok()?;
+            }
+
+
+            let data = data.to_vec();
             self.data.push((id, data));
 
             println!("Segment loader: loading: {} {} @{:08x}", id, name, address);
