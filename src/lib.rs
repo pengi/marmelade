@@ -6,7 +6,9 @@ extern crate r68k_tools;
 pub mod filesys;
 pub mod serialization;
 pub mod types;
+
+pub mod cpu;
 pub mod phy;
-pub mod toolbox;
+// pub mod toolbox;
 
 pub mod tools;

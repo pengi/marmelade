@@ -5,7 +5,7 @@ use marmelade::{
     serialization::SerialAdaptor,
     filesys::hfs::HfsImage,
     filesys::rsrc::Rsrc,
-    toolbox::Toolbox
+    // toolbox::Toolbox
 };
 
 use std::io::{
@@ -24,12 +24,12 @@ fn main() -> std::io::Result<()> {
 
     let file_os_path = matches.value_of("img").ok_or(ErrorKind::from(ErrorKind::InvalidInput))?;
     let file_img_path = matches.value_of("file").ok_or(ErrorKind::from(ErrorKind::InvalidInput))?;
-    let (fs, rsrc) = load_file(file_os_path, file_img_path)?;
+    let (_fs, _rsrc) = load_file(file_os_path, file_img_path)?;
 
-    let toolbox = Toolbox::new(fs, rsrc)?;
-    let mut phy = Toolbox::into_phy(&toolbox)?;
+    // let toolbox = Toolbox::new(fs, rsrc)?;
+    // let mut phy = Toolbox::into_phy(&toolbox)?;
 
-    phy.run();
+    // phy.run();
 
     Ok(())
 }

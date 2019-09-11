@@ -1,6 +1,8 @@
 use crate::serialization::{SerialReadStorage, SerialRead};
 use chrono::NaiveDateTime;
 
+use crate::cpu::{CPU, Stackable};
+
 #[derive(PartialEq)]
 #[derive(SerialRead)]
 pub struct OSType (pub [u8;4]);
@@ -61,6 +63,15 @@ impl From<u32> for OSType {
 impl From<OSType> for u32 {
     fn from(t: OSType) -> u32 {
         t.as_u32()
+    }
+}
+
+impl Stackable for OSType {
+    fn stack_push(&self, cpu: &mut CPU) {
+        self.as_u32().stack_push(cpu);
+    }
+    fn stack_pop(cpu: &mut CPU) -> Self {
+        OSType::from(u32::stack_pop(cpu))
     }
 }
 

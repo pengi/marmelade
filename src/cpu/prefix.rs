@@ -37,42 +37,17 @@ impl Prefix {
             (other.address & self.mask) == self.address
         }
     }
-}
-
-pub struct PrefixMap<T> {
-    // Keep a simple implementation for now
-    children: Vec<(Prefix, T)>
-}
-
-impl<T> From<Vec<(Prefix, T)>> for PrefixMap<T> {
-    fn from(vec: Vec<(Prefix, T)>) -> PrefixMap<T> {
-        PrefixMap {
-            children: vec
+    
+    pub fn map(&self, address: u32, size: usize) -> Option<u32> {
+        if self.contains_value(address) && self.contains_value(address + (size as u32) - 1) {
+            Some(address & !self.mask)
+        } else {
+            None
         }
     }
-}
-
-impl<T> PrefixMap<T> {
-    pub fn locate(&self, address : u32) -> Option<(u32, &T)> {
-        for (prefix, ref value) in self.children.iter() {
-            if prefix.contains_value(address) {
-                return Some(((address & !prefix.address), value));
-            }
-        }
-        None
-    }
-
-    pub fn locate_mut(&mut self, address : u32) -> Option<(u32, &mut T)> {
-        for (prefix, ref mut value) in self.children.iter_mut() {
-            if prefix.contains_value(address) {
-                return Some(((address & !prefix.address), value));
-            }
-        }
-        None
-    }
-
-    pub fn add_prefix(&mut self, prefix: Prefix, value: T) {
-        self.children.push((prefix, value));
+    
+    pub fn size(&self) -> usize {
+        1 + !self.mask as usize
     }
 }
 
@@ -80,8 +55,7 @@ impl<T> PrefixMap<T> {
 #[cfg(test)]
 mod tests {
     use super::{
-        Prefix,
-        PrefixMap
+        Prefix
     };
 
     #[test]
@@ -145,38 +119,23 @@ mod tests {
 
         assert!(!Prefix::new(0x12340000, 24).contains_prefix(Prefix::new(0x12340000,16)));
     }
-
+    
     #[test]
-    fn locate_map() {
-        let map = PrefixMap::from(vec![
-            (Prefix::new(0x00000000, 20), 1),
-            (Prefix::new(0x00001000, 20), 2),
-            (Prefix::new(0x20000000, 8), 3),
-            (Prefix::new(0x40000000, 8), 4)
-        ]);
-        assert_eq!(map.locate(0x00000123), Some((0x00000123, &1)));
-        assert_eq!(map.locate(0x00001000), Some((0x00000000, &2)));
-        assert_eq!(map.locate(0x00001123), Some((0x00000123, &2)));
-        assert_eq!(map.locate(0x00003123), None);
-        assert_eq!(map.locate(0x10003123), None);
-        assert_eq!(map.locate(0x20003123), Some((0x00003123, &3)));
-        assert_eq!(map.locate(0x30003123), None);
+    fn map_address() {
+        assert_eq!(Prefix::new(0x43000000, 9).map(0x43000000, 4), Some(0));
+        assert_eq!(Prefix::new(0x43000000, 9).map(0x43123456, 4), Some(0x123456));
+        assert_eq!(Prefix::new(0x43000000, 9).map(0x437fffff, 1), Some(0x7fffff));
+        assert_eq!(Prefix::new(0x43000000, 9).map(0x437fffff, 2), None);
+        assert_eq!(Prefix::new(0x43000000, 9).map(0x437fffff, 4), None);
+        assert_eq!(Prefix::new(0x43000000, 9).map(0x43ffffff, 1), None);
+        assert_eq!(Prefix::new(0x43000000, 9).map(0x43800000, 4), None);
     }
-
+    
     #[test]
-    fn locate_mut_map() {
-        let mut map = PrefixMap::from(vec![
-            (Prefix::new(0x00000000, 20), 1),
-            (Prefix::new(0x00001000, 20), 2),
-            (Prefix::new(0x20000000, 8), 3),
-            (Prefix::new(0x40000000, 8), 4)
-        ]);
-        assert_eq!(map.locate_mut(0x00000123), Some((0x00000123, &mut 1)));
-        assert_eq!(map.locate_mut(0x00001000), Some((0x00000000, &mut 2)));
-        assert_eq!(map.locate_mut(0x00001123), Some((0x00000123, &mut 2)));
-        assert_eq!(map.locate_mut(0x00003123), None);
-        assert_eq!(map.locate_mut(0x10003123), None);
-        assert_eq!(map.locate_mut(0x20003123), Some((0x00003123, &mut 3)));
-        assert_eq!(map.locate_mut(0x30003123), None);
+    fn prefix_size() {
+        assert_eq!(Prefix::new(0x43000000, 9).size(), 0x0080_0000);
+        assert_eq!(Prefix::new(0x43000000, 16).size(), 0x0001_0000);
+        assert_eq!(Prefix::new(0x43000000, 32).size(), 0x0000_0001);
+        assert_eq!(Prefix::new(0x80000000, 1).size(), 0x8000_0000);
     }
 }

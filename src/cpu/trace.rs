@@ -10,22 +10,19 @@ use r68k_tools::{
     memory::Memory,
 };
 
-use super::{
-    Phy,
-    TrapHandler
-};
+use super::CPU;
 
-struct PhyMemory<'phy, M : AddressBus, T : TrapHandler> {
-    phy: &'phy Phy<M, T>
+struct PhyMemory<'phy> {
+    phy: &'phy CPU
 }
 
-impl<'phy, M : AddressBus, T : TrapHandler> PhyMemory<'phy, M, T> {
-    pub fn new(phy: &'phy Phy<M, T>) -> PhyMemory<'phy, M, T> {
+impl<'phy> PhyMemory<'phy> {
+    pub fn new(phy: &'phy CPU) -> PhyMemory<'phy> {
         PhyMemory { phy: phy }
     }
 }
 
-impl<'phy, M : AddressBus, T : TrapHandler> Memory for PhyMemory<'phy, M, T> {
+impl<'phy> Memory for PhyMemory<'phy> {
     fn offset(&self) -> u32 {
         self.phy.core.pc
     }
@@ -49,12 +46,12 @@ impl<'phy, M : AddressBus, T : TrapHandler> Memory for PhyMemory<'phy, M, T> {
     }
 }
 
-pub fn print_core_header<M : AddressBus, T : TrapHandler>(_tbx : &Phy<M, T>) {
+pub fn print_core_header(_tbx : &CPU) {
     println!(
         "        PC...... | IR.. | D0...... D1...... D2...... D3...... D4...... D5...... D6...... D7...... | A0...... A1...... A2...... A3...... A4...... A5...... A6...... A7...... | Next Instruction");
 }
 
-pub fn print_core_line<M : AddressBus, T : TrapHandler>(tbx : &Phy<M, T>) {
+pub fn print_core_line(tbx : &CPU) {
     let c = &tbx.core;
 
     print!(
@@ -82,7 +79,7 @@ pub fn print_core_line<M : AddressBus, T : TrapHandler>(tbx : &Phy<M, T>) {
     }
 }
 
-pub fn print_core<M : AddressBus, T : TrapHandler>(tbx : &Phy<M, T>) {
+pub fn print_core(tbx : &CPU) {
     println!("======================================");
     println!("PC:            {:08x}", tbx.core.pc);
     println!("SSP':          {:08x}", tbx.core.inactive_ssp);
