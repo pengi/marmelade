@@ -1,4 +1,4 @@
-use crate::cpu::{CPUPeripheral, Prefix};
+use crate::cpu::{CPUPeripheral, AddressRange};
 
 fn vec_to_u32(bytes: &[u8]) -> u32 {
     let mut result = 0;
@@ -18,18 +18,18 @@ fn u32_to_vec(bytes: &mut[u8], value: u32) {
 }
 
 pub struct RAM {
-    prefix: Prefix,
+    range: AddressRange,
     content: Vec<u8>
 }
 
 impl RAM {
-    pub fn new(prefix: Prefix) -> RAM {
-        let size = prefix.size();
-        RAM { prefix, content: vec![0xff; size] }
+    pub fn new(range: AddressRange) -> RAM {
+        let size = range.size();
+        RAM { range, content: vec![0xff; size] }
     }
     
     fn apply<R, F: FnOnce(&mut [u8]) -> R>(&mut self, address: u32, size: usize, op: F) -> Option<R> {
-        if let Some(mapped_address) = self.prefix.map(address, size) {
+        if let Some(mapped_address) = self.range.map(address, size) {
             let mapped_address = mapped_address as usize;
             let bytes = &mut self.content[mapped_address..mapped_address+size];
             Some(op(bytes))
@@ -56,12 +56,12 @@ mod tests {
     use super::{
         RAM,
         CPUPeripheral,
-        Prefix
+        AddressRange
     };
     
     #[test]
     fn mem_read_u32() {
-        let mut mem = RAM::new(Prefix::new(0x20000000, 16));
+        let mut mem = RAM::new(AddressRange::new_prefix(0x20000000, 16));
         /* Force set values fo testing */
         mem.content[0] = 0x01;
         mem.content[1] = 0x23;
@@ -72,7 +72,7 @@ mod tests {
     
     #[test]
     fn mem_read_u16() {
-        let mut mem = RAM::new(Prefix::new(0x20000000, 16));
+        let mut mem = RAM::new(AddressRange::new_prefix(0x20000000, 16));
         /* Force set values fo testing */
         mem.content[0] = 0x01;
         mem.content[1] = 0x23;
@@ -84,7 +84,7 @@ mod tests {
     
     #[test]
     fn mem_read_u8() {
-        let mut mem = RAM::new(Prefix::new(0x20000000, 16));
+        let mut mem = RAM::new(AddressRange::new_prefix(0x20000000, 16));
         /* Force set values fo testing */
         mem.content[0] = 0x01;
         mem.content[1] = 0x23;
@@ -95,14 +95,14 @@ mod tests {
     
     #[test]
     fn mem_write_u32() {
-        let mut mem = RAM::new(Prefix::new(0x20000000, 16));
+        let mut mem = RAM::new(AddressRange::new_prefix(0x20000000, 16));
         assert_eq!(Some(()), mem.mem_write(0x20001234, 0xbaddecaf, 4));
         assert_eq!(Some(0xbaddecaf), mem.mem_read(0x20001234, 4));
     }
     
     #[test]
     fn mem_write_u32_read_u16() {
-        let mut mem = RAM::new(Prefix::new(0x20000000, 16));
+        let mut mem = RAM::new(AddressRange::new_prefix(0x20000000, 16));
         assert_eq!(Some(()), mem.mem_write(0x20001234, 0xbaddecaf, 4));
         assert_eq!(Some(0xbadd), mem.mem_read(0x20001234, 2));
         assert_eq!(Some(0xecaf), mem.mem_read(0x20001236, 2));
@@ -110,19 +110,19 @@ mod tests {
     
     #[test]
     fn mem_read_over_end() {
-        let mut mem = RAM::new(Prefix::new(0x20000000, 16));
+        let mut mem = RAM::new(AddressRange::new_prefix(0x20000000, 16));
         assert_eq!(None, mem.mem_read(0x2000fffe, 4));
     }
     
     #[test]
     fn mem_read_out_of_block() {
-        let mut mem = RAM::new(Prefix::new(0x20000000, 16));
+        let mut mem = RAM::new(AddressRange::new_prefix(0x20000000, 16));
         assert_eq!(None, mem.mem_read(0x21000000, 4));
     }
     
     #[test]
     fn mem_write_out_of_block() {
-        let mut mem = RAM::new(Prefix::new(0x20000000, 16));
+        let mut mem = RAM::new(AddressRange::new_prefix(0x20000000, 16));
         assert_eq!(None, mem.mem_write(0x21000000, 313, 4));
     }
 }

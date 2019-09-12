@@ -12,42 +12,50 @@ const PREFIX_ONES : [u32; 33] = [
 ];
 
 #[derive(PartialEq, Debug)]
-pub struct Prefix {
-    pub mask : u32,
-    pub address : u32
+pub struct AddressRange {
+    // Points to to first byte in range
+    address_start : u32,
+    
+    // Points to last byte included in range, to allow for 0xffffffff
+    address_end : u32
 }
 
-impl Prefix {
-    pub fn new(address : u32, length : u32) -> Prefix {
+impl AddressRange {
+    pub fn new_prefix(address : u32, length : u32) -> AddressRange {
         let mask = PREFIX_ONES[length as usize];
         assert_eq!(0, address & !mask);
-        Prefix { mask, address }
-    }
-
-    pub fn contains_value(&self, address: u32) -> bool {
-        (address & self.mask) == self.address
-    }
-
-    pub fn contains_prefix(&self, other: Prefix) -> bool {
-        if (self.mask & !other.mask) != 0 {
-            // A longer prefix can't contain a shorter
-            false
-        } else {
-            // ...otherwise check if first value contains
-            (other.address & self.mask) == self.address
+        AddressRange {
+            address_start: address,
+            address_end: address | !mask
         }
     }
     
+    pub fn new(address_start : u32, address_end : u32) -> AddressRange {
+        assert!(address_start <= address_end);
+        AddressRange {
+            address_start: address_start,
+            address_end: address_end
+        }
+    }
+
+    pub fn contains_value(&self, address: u32) -> bool {
+        (address >= self.address_start) && (address <= self.address_end)
+    }
+
+    pub fn contains_range(&self, other: AddressRange) -> bool {
+        (other.address_start >= self.address_start) && (other.address_end <= self.address_end)
+    }
+    
     pub fn map(&self, address: u32, size: usize) -> Option<u32> {
-        if self.contains_value(address) && self.contains_value(address + (size as u32) - 1) {
-            Some(address & !self.mask)
+        if (address >= self.address_start) && ((address + size as u32 - 1) <= self.address_end) {
+            Some(address - self.address_start)
         } else {
             None
         }
     }
     
     pub fn size(&self) -> usize {
-        1 + !self.mask as usize
+        (self.address_end - self.address_start + 1) as usize
     }
 }
 
@@ -55,87 +63,87 @@ impl Prefix {
 #[cfg(test)]
 mod tests {
     use super::{
-        Prefix
+        AddressRange
     };
 
     #[test]
-    fn address_prefix_mask() {
-        let prefix = Prefix::new(0x43000000, 8);
-        assert_eq!(prefix, Prefix{
-            mask: 0xff000000,
-            address: 0x43000000
+    fn address_range_mask() {
+        let range = AddressRange::new_prefix(0x43000000, 8);
+        assert_eq!(range, AddressRange{
+            address_start: 0x43000000,
+            address_end: 0x43ffffff
         });
 
-        let prefix = Prefix::new(0x00000000, 0);
-        assert_eq!(prefix, Prefix{
-            mask: 0x00000000,
-            address: 0x00000000
+        let range = AddressRange::new_prefix(0x00000000, 0);
+        assert_eq!(range, AddressRange{
+            address_start: 0x00000000,
+            address_end: 0xffffffff
         });
 
-        let prefix = Prefix::new(0x12345678, 32);
-        assert_eq!(prefix, Prefix{
-            mask: 0xffffffff,
-            address: 0x12345678
+        let range = AddressRange::new_prefix(0x12345678, 32);
+        assert_eq!(range, AddressRange{
+            address_start: 0x12345678,
+            address_end: 0x12345678
         });
     }
 
     #[test]
     #[should_panic]
-    fn address_prefix_masked_should_be_zero() {
-        let _prefix = Prefix::new(0x12345678, 16);
+    fn address_range_masked_should_be_zero() {
+        let _range = AddressRange::new_prefix(0x12345678, 16);
     }
 
     #[test]
     #[should_panic]
-    fn address_prefix_too_long_mask() {
-        let _prefix = Prefix::new(0x12345678, 33);
+    fn address_range_too_long_mask() {
+        let _range = AddressRange::new_prefix(0x12345678, 33);
     }
 
     #[test]
-    fn address_prefix_contains_value() {
-        assert!(Prefix::new(0x43000000, 8).contains_value(0x43001010));
-        assert!(Prefix::new(0x43000000, 8).contains_value(0x43000000));
-        assert!(Prefix::new(0x43000000, 8).contains_value(0x43ffffff));
-        assert!(Prefix::new(0x43000000, 8).contains_value(0x43100000));
+    fn address_range_contains_value() {
+        assert!(AddressRange::new_prefix(0x43000000, 8).contains_value(0x43001010));
+        assert!(AddressRange::new_prefix(0x43000000, 8).contains_value(0x43000000));
+        assert!(AddressRange::new_prefix(0x43000000, 8).contains_value(0x43ffffff));
+        assert!(AddressRange::new_prefix(0x43000000, 8).contains_value(0x43100000));
         
-        assert!(Prefix::new(0x43000000, 9).contains_value(0x43001010));
-        assert!(Prefix::new(0x43000000, 9).contains_value(0x43000000));
-        assert!(Prefix::new(0x43000000, 9).contains_value(0x437fffff));
-        assert!(!Prefix::new(0x43000000, 9).contains_value(0x43ffffff));
-        assert!(!Prefix::new(0x43000000, 9).contains_value(0x43800000));
+        assert!(AddressRange::new_prefix(0x43000000, 9).contains_value(0x43001010));
+        assert!(AddressRange::new_prefix(0x43000000, 9).contains_value(0x43000000));
+        assert!(AddressRange::new_prefix(0x43000000, 9).contains_value(0x437fffff));
+        assert!(!AddressRange::new_prefix(0x43000000, 9).contains_value(0x43ffffff));
+        assert!(!AddressRange::new_prefix(0x43000000, 9).contains_value(0x43800000));
     }
 
     #[test]
-    fn address_prefix_contains_prefix() {
-        assert!(Prefix::new(0x43000000, 8).contains_prefix(Prefix::new(0x43001010,32)));
-        assert!(Prefix::new(0x43000000, 8).contains_prefix(Prefix::new(0x43000000,32)));
-        assert!(Prefix::new(0x43000000, 8).contains_prefix(Prefix::new(0x43ffffff,32)));
-        assert!(Prefix::new(0x43000000, 8).contains_prefix(Prefix::new(0x43100000,32)));
-        assert!(Prefix::new(0x43000000, 9).contains_prefix(Prefix::new(0x43001010,32)));
-        assert!(Prefix::new(0x43000000, 9).contains_prefix(Prefix::new(0x43000000,32)));
-        assert!(Prefix::new(0x43000000, 9).contains_prefix(Prefix::new(0x437fffff,32)));
-        assert!(!Prefix::new(0x43000000, 9).contains_prefix(Prefix::new(0x43ffffff,32)));
-        assert!(!Prefix::new(0x43000000, 9).contains_prefix(Prefix::new(0x43800000,32)));
+    fn address_range_contains_range() {
+        assert!(AddressRange::new_prefix(0x43000000, 8).contains_range(AddressRange::new_prefix(0x43001010,32)));
+        assert!(AddressRange::new_prefix(0x43000000, 8).contains_range(AddressRange::new_prefix(0x43000000,32)));
+        assert!(AddressRange::new_prefix(0x43000000, 8).contains_range(AddressRange::new_prefix(0x43ffffff,32)));
+        assert!(AddressRange::new_prefix(0x43000000, 8).contains_range(AddressRange::new_prefix(0x43100000,32)));
+        assert!(AddressRange::new_prefix(0x43000000, 9).contains_range(AddressRange::new_prefix(0x43001010,32)));
+        assert!(AddressRange::new_prefix(0x43000000, 9).contains_range(AddressRange::new_prefix(0x43000000,32)));
+        assert!(AddressRange::new_prefix(0x43000000, 9).contains_range(AddressRange::new_prefix(0x437fffff,32)));
+        assert!(!AddressRange::new_prefix(0x43000000, 9).contains_range(AddressRange::new_prefix(0x43ffffff,32)));
+        assert!(!AddressRange::new_prefix(0x43000000, 9).contains_range(AddressRange::new_prefix(0x43800000,32)));
 
-        assert!(!Prefix::new(0x12340000, 24).contains_prefix(Prefix::new(0x12340000,16)));
+        assert!(!AddressRange::new_prefix(0x12340000, 24).contains_range(AddressRange::new_prefix(0x12340000,16)));
     }
     
     #[test]
     fn map_address() {
-        assert_eq!(Prefix::new(0x43000000, 9).map(0x43000000, 4), Some(0));
-        assert_eq!(Prefix::new(0x43000000, 9).map(0x43123456, 4), Some(0x123456));
-        assert_eq!(Prefix::new(0x43000000, 9).map(0x437fffff, 1), Some(0x7fffff));
-        assert_eq!(Prefix::new(0x43000000, 9).map(0x437fffff, 2), None);
-        assert_eq!(Prefix::new(0x43000000, 9).map(0x437fffff, 4), None);
-        assert_eq!(Prefix::new(0x43000000, 9).map(0x43ffffff, 1), None);
-        assert_eq!(Prefix::new(0x43000000, 9).map(0x43800000, 4), None);
+        assert_eq!(AddressRange::new_prefix(0x43000000, 9).map(0x43000000, 4), Some(0));
+        assert_eq!(AddressRange::new_prefix(0x43000000, 9).map(0x43123456, 4), Some(0x123456));
+        assert_eq!(AddressRange::new_prefix(0x43000000, 9).map(0x437fffff, 1), Some(0x7fffff));
+        assert_eq!(AddressRange::new_prefix(0x43000000, 9).map(0x437fffff, 2), None);
+        assert_eq!(AddressRange::new_prefix(0x43000000, 9).map(0x437fffff, 4), None);
+        assert_eq!(AddressRange::new_prefix(0x43000000, 9).map(0x43ffffff, 1), None);
+        assert_eq!(AddressRange::new_prefix(0x43000000, 9).map(0x43800000, 4), None);
     }
     
     #[test]
-    fn prefix_size() {
-        assert_eq!(Prefix::new(0x43000000, 9).size(), 0x0080_0000);
-        assert_eq!(Prefix::new(0x43000000, 16).size(), 0x0001_0000);
-        assert_eq!(Prefix::new(0x43000000, 32).size(), 0x0000_0001);
-        assert_eq!(Prefix::new(0x80000000, 1).size(), 0x8000_0000);
+    fn range_size() {
+        assert_eq!(AddressRange::new_prefix(0x43000000, 9).size(), 0x0080_0000);
+        assert_eq!(AddressRange::new_prefix(0x43000000, 16).size(), 0x0001_0000);
+        assert_eq!(AddressRange::new_prefix(0x43000000, 32).size(), 0x0000_0001);
+        assert_eq!(AddressRange::new_prefix(0x80000000, 1).size(), 0x8000_0000);
     }
 }

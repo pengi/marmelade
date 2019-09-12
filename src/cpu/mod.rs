@@ -9,7 +9,7 @@ mod stackable;
 pub use stackable::Stackable;
 
 mod prefix;
-pub use prefix::Prefix;
+pub use prefix::AddressRange;
 
 pub use peripheral::CPUPeripheral;
 use bus::CPUBus;
