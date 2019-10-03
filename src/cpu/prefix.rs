@@ -54,6 +54,10 @@ impl AddressRange {
         }
     }
     
+    pub fn start(&self) -> u32 {
+        self.address_start
+    }
+    
     pub fn size(&self) -> usize {
         (self.address_end - self.address_start + 1) as usize
     }

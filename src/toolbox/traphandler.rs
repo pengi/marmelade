@@ -141,19 +141,6 @@ impl ToolboxTrapHandler {
         None
     }
 
-    #[trap(0xa9f0)]
-    fn LoadSeg(&mut self, cpu: &mut CPU, code_id: i16) -> Option<()> {
-        if let Some(_address) = self.toolbox.segment_loader.borrow_mut().load(code_id) {
-            // The segment is loaded, jump back to the jump table
-            // let pc = *core.pc();
-            // core.jump(pc - 6);
-            Some(())
-        } else {
-            println!("Unknown segment {}", code_id);
-            None
-        }
-    }
-
     #[trap(0xa9fd)]
     fn GetScrap(&mut self, _cpu: &mut CPU, hDest: u32, theType: OSType, offset: i32) -> Option<i32> {
         println!("GetScrap(${:08x}, {:?}, {}) = -102", hDest, theType, offset);

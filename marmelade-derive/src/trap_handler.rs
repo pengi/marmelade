@@ -43,7 +43,7 @@ pub fn trap_handlers(_attr: TokenStream, item: TokenStream) -> TokenStream {
             for fnattr in trap_attributes {
                 let trap : syn::ExprParen = syn::parse(fnattr.tts.into()).unwrap();
 
-                // TODO: Verify (&mut self, core: &mut impl Core) parameters
+                // TODO: Verify (&mut self, cpu: &mut impl CPU) parameters
 
                 methods.push(TrapHandlerRef {
                     trap: trap.expr,
@@ -64,22 +64,22 @@ pub fn trap_handlers(_attr: TokenStream, item: TokenStream) -> TokenStream {
         quote!{
             #trap => {
                 #(let #args = Stackable::stack_pop(core);)*
-                if let Some(result) = self.#methodname(core #(, #args2)*) {
+                if let Some(result) = self.#methodname(cpu #(, #args2)*) {
                     result.stack_replace(core);
-                    TrapResult::Continue
+                    Some(())
                 } else {
-                    TrapResult::Halt
+                    None
                 }
             }
         }
     });
 
     let traphandlertrait = quote! {
-        impl TrapHandler for #name {
-            fn line_1010_emualtion(&mut self, core: &mut impl Core, ir: u16, _pc: u32) -> TrapResult {
+        impl #name {
+            fn trap_invoke(&mut self, cpu: &mut CPU, core: &mut CPUCore, ir: u16, _pc: u32) -> Option<()> {
                 match ir {
                     #(#method_impl,)*
-                    _ => TrapResult::Unimplemented
+                    _ => None
                 }
             }
         }

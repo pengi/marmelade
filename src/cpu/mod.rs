@@ -1,7 +1,6 @@
 mod bus;
 mod peripheral;
 mod address_interface;
-mod callback_interface;
 
 mod trace;
 
@@ -15,22 +14,27 @@ pub use peripheral::CPUPeripheral;
 use bus::CPUBus;
 
 use address_interface::CPUAddressInterface;
-use callback_interface::CPUCallbacksInterface;
 
 use std::rc::Rc;
-use std::cell::{RefCell, RefMut};
+use std::cell::{RefCell, RefMut, Ref};
 
 use r68k_emu::{
+    cpu,
     cpu::{
         ConfiguredCore,
-        ProcessingState
+        ProcessingState,
+        Callbacks,
+        Exception,
+        Cycles,
+        Core
     },
     interrupts::AutoInterruptController,
 };
 
+pub type CPUCore = ConfiguredCore<AutoInterruptController, CPUAddressInterface>;
+
 pub struct CPU {
-    core: ConfiguredCore<AutoInterruptController, CPUAddressInterface>,
-    callback_interface: CPUCallbacksInterface,
+    core: Option<CPUCore>,
     bus: Rc<RefCell<CPUBus>>
 }
 
@@ -38,13 +42,11 @@ impl CPU {
     pub fn new() -> CPU {
         let bus = Rc::new(RefCell::new(CPUBus::new()));
         let address_interface = CPUAddressInterface::new(&bus);
-        let callback_interface = CPUCallbacksInterface::new(&bus);
         
         let irq = AutoInterruptController::new();
         
         CPU {
-            core: ConfiguredCore::new_with(0, irq, address_interface),
-            callback_interface,
+            core: Some(ConfiguredCore::new_with(0, irq, address_interface)),
             bus
         }
     }
@@ -55,14 +57,40 @@ impl CPU {
     }
     
     pub fn run(&mut self) {
-        trace::print_core_header(&self);
-        loop {
-            trace::print_core_line(&self);
-            self.core.execute_with_state(1, &mut self.callback_interface);
-            if self.core.processing_state == ProcessingState::Halted || self.core.processing_state == ProcessingState::Stopped {
-                break;
+        if let Some(core) = self.core {
+            self.core = None;
+            trace::print_core_header(&core);
+            loop {
+                trace::print_core_line(&core);
+                core.execute_with_state(1, self);
+                if core.processing_state == ProcessingState::Halted || core.processing_state == ProcessingState::Stopped {
+                    break;
+                }
             }
+            trace::print_core(&core);
+            self.core = Some(core);
+        } else {
+            println!("CPU Core is occupied");
         }
-        trace::print_core(&self);
+    }
+}
+
+impl Callbacks for CPU {
+    fn exception_callback(&mut self, core: &mut impl Core, ex: Exception) -> cpu::Result<Cycles> {
+        let p: Ref<_> = self.bus.borrow();
+        trace::print_exception("Ex", ex);
+        
+        let action = match ex {
+            Exception::UnimplementedInstruction(ir, pc, 10) => {
+                p.line_1010_emualtion(self, core, ir, pc)
+            },
+            _ => None
+        };
+        if let Some(_) = action {
+            Ok(Cycles(1))
+        } else {
+            core.stop_instruction_processing();
+            Ok(Cycles(1))
+        }
     }
 }

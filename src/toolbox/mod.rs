@@ -1,4 +1,4 @@
-mod traphandler;
+// mod traphandler;
 mod segment_loader;
 
 // The toolbox emulates the functionality of Macintosh Toolbox
@@ -19,36 +19,39 @@ use crate::{
     },
     cpu::{
         CPU,
-        CPUPeripheral
+        CPUPeripheral,
+        AddressRange
     },
     phy::{
-        ram::RAM
+        RAM
     }
 };
 use std::rc::Rc;
-use traphandler::ToolboxTrapHandler;
 use segment_loader::SegmentLoader;
 
-pub use r68k_emu::cpu::Core;
-
-type ToolboxPhy = Phy<LogMem<MuxMem>, ToolboxTrapHandler>;
-
 pub struct Toolbox {
+    cpu: CPU,
     _img: HfsImage,
-    rsrc: Rsrc,
-    segment_loader: RcMem<SegmentLoader>
+    rsrc: Rc<Rsrc>
 
 }
 
 impl Toolbox {
-    pub fn new(img: HfsImage, rsrc: Rsrc) -> std::io::Result<Rc<Toolbox>> {
-        let toolbox = Rc::new(Toolbox {
+    pub fn new(img: HfsImage, rsrc: Rsrc) -> Toolbox {
+        let mut toolbox = Toolbox {
+            cpu: CPU::new(),
             _img: img,
-            rsrc,
-            segment_loader: RcMem::new(SegmentLoader::new())
-        });
-
-        Ok(toolbox)
+            rsrc: Rc::new(rsrc)
+        };
+        toolbox.cpu.attach(Box::new(SegmentLoader::new(
+            AddressRange::new_prefix(0x20000000, 8),
+            &toolbox.rsrc
+        )));
+        toolbox
+    }
+    
+    pub fn run(&mut self) {
+        
     }
 
 

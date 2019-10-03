@@ -12,5 +12,5 @@ marmelade-derive = { path = "marmelade-derive" }
 byteorder = "1.3.2"
 chrono = "0.4.7"
 clap = "2.33.0"
-r68k-emu = { git = "https://github.com/pengi/r68k", branch = "addressbus-trait-obj" }
-r68k-tools = { git = "https://github.com/pengi/r68k", branch = "addressbus-trait-obj" }
+r68k-emu = { git = "https://github.com/pengi/r68k", branch = "marmelade-develop" }
+r68k-tools = { git = "https://github.com/pengi/r68k", branch = "marmelade-develop" }

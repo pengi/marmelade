@@ -75,8 +75,8 @@ dependencies = [
  "chrono 0.4.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "clap 2.33.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "marmelade-derive 0.1.0",
- "r68k-emu 0.1.0 (git+https://github.com/pengi/r68k?branch=addressbus-trait-obj)",
- "r68k-tools 0.1.0 (git+https://github.com/pengi/r68k?branch=addressbus-trait-obj)",
+ "r68k-emu 0.1.0 (git+https://github.com/pengi/r68k?branch=marmelade-develop)",
+ "r68k-tools 0.1.0 (git+https://github.com/pengi/r68k?branch=marmelade-develop)",
 ]
 
 [[package]]
@@ -128,24 +128,24 @@ dependencies = [
 [[package]]
 name = "r68k-common"
 version = "0.1.0"
-source = "git+https://github.com/pengi/r68k?branch=addressbus-trait-obj#07f5772c97dcd7ee1f4210aab4e04bbb6581ce37"
+source = "git+https://github.com/pengi/r68k?branch=marmelade-develop#07f5772c97dcd7ee1f4210aab4e04bbb6581ce37"
 
 [[package]]
 name = "r68k-emu"
 version = "0.1.0"
-source = "git+https://github.com/pengi/r68k?branch=addressbus-trait-obj#07f5772c97dcd7ee1f4210aab4e04bbb6581ce37"
+source = "git+https://github.com/pengi/r68k?branch=marmelade-develop#07f5772c97dcd7ee1f4210aab4e04bbb6581ce37"
 dependencies = [
  "lazy_static 0.1.16 (registry+https://github.com/rust-lang/crates.io-index)",
- "r68k-common 0.1.0 (git+https://github.com/pengi/r68k?branch=addressbus-trait-obj)",
+ "r68k-common 0.1.0 (git+https://github.com/pengi/r68k?branch=marmelade-develop)",
 ]
 
 [[package]]
 name = "r68k-tools"
 version = "0.1.0"
-source = "git+https://github.com/pengi/r68k?branch=addressbus-trait-obj#07f5772c97dcd7ee1f4210aab4e04bbb6581ce37"
+source = "git+https://github.com/pengi/r68k?branch=marmelade-develop#07f5772c97dcd7ee1f4210aab4e04bbb6581ce37"
 dependencies = [
  "pest 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "r68k-common 0.1.0 (git+https://github.com/pengi/r68k?branch=addressbus-trait-obj)",
+ "r68k-common 0.1.0 (git+https://github.com/pengi/r68k?branch=marmelade-develop)",
 ]
 
 [[package]]
@@ -235,9 +235,9 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 "checksum pest 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)" = "3e2e823a5967bb4cdc6d3e46f47baaf4ecfeae44413a642b74ad44e59e49c7f6"
 "checksum proc-macro2 0.4.30 (registry+https://github.com/rust-lang/crates.io-index)" = "cf3d2011ab5c909338f7887f4fc896d35932e29146c12c8d01da6b22a80ba759"
 "checksum quote 0.6.13 (registry+https://github.com/rust-lang/crates.io-index)" = "6ce23b6b870e8f94f81fb0a363d65d86675884b34a09043c81e5562f11c1f8e1"
-"checksum r68k-common 0.1.0 (git+https://github.com/pengi/r68k?branch=addressbus-trait-obj)" = "<none>"
-"checksum r68k-emu 0.1.0 (git+https://github.com/pengi/r68k?branch=addressbus-trait-obj)" = "<none>"
-"checksum r68k-tools 0.1.0 (git+https://github.com/pengi/r68k?branch=addressbus-trait-obj)" = "<none>"
+"checksum r68k-common 0.1.0 (git+https://github.com/pengi/r68k?branch=marmelade-develop)" = "<none>"
+"checksum r68k-emu 0.1.0 (git+https://github.com/pengi/r68k?branch=marmelade-develop)" = "<none>"
+"checksum r68k-tools 0.1.0 (git+https://github.com/pengi/r68k?branch=marmelade-develop)" = "<none>"
 "checksum redox_syscall 0.1.56 (registry+https://github.com/rust-lang/crates.io-index)" = "2439c63f3f6139d1b57529d16bc3b8bb855230c8efcc5d3a896c8bea7c3b1e84"
 "checksum strsim 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)" = "8ea5119cdb4c55b55d432abb513a0429384878c15dde60cc77b1c99de1a95a6a"
 "checksum syn 0.15.42 (registry+https://github.com/rust-lang/crates.io-index)" = "eadc09306ca51a40555dd6fc2b415538e9e18bc9f870e47b1a524a79fe2dcf5e"

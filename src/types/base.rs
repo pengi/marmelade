@@ -1,7 +1,7 @@
 use crate::serialization::{SerialReadStorage, SerialRead};
 use chrono::NaiveDateTime;
 
-use crate::cpu::{CPU, Stackable};
+use crate::cpu::{CPU, Stackable, CPUCore};
 
 #[derive(PartialEq)]
 #[derive(SerialRead)]
@@ -67,11 +67,11 @@ impl From<OSType> for u32 {
 }
 
 impl Stackable for OSType {
-    fn stack_push(&self, cpu: &mut CPU) {
-        self.as_u32().stack_push(cpu);
+    fn stack_push(&self, core: &mut CPUCore) {
+        self.as_u32().stack_push(core);
     }
-    fn stack_pop(cpu: &mut CPU) -> Self {
-        OSType::from(u32::stack_pop(cpu))
+    fn stack_pop(core: &mut CPUCore) -> Self {
+        OSType::from(u32::stack_pop(core))
     }
 }
 

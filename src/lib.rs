@@ -9,6 +9,6 @@ pub mod types;
 
 pub mod cpu;
 pub mod phy;
-// pub mod toolbox;
+pub mod toolbox;
 
 pub mod tools;

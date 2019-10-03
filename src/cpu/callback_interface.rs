@@ -6,26 +6,27 @@ use std::cell::{RefCell, Ref};
 
 use super::trace;
 
-pub struct CPUCallbacksInterface {
-    peripheral: Rc<RefCell<CPUBus>>
+pub struct CPUCallbacksInterface<'cpu> {
+    peripheral: &'cpu mut cpu
 }
 
-impl CPUCallbacksInterface {
+impl<'cpu> CPUCallbacksInterface<'cpu> {
     pub fn new(peripheral: &Rc<RefCell<CPUBus>>) -> CPUCallbacksInterface {
         CPUCallbacksInterface {
-            peripheral: Rc::clone(peripheral)
+            cpu: CPU
         }
     }
 }
 
-impl Callbacks for CPUCallbacksInterface {
+impl<'cpu> Callbacks for CPUCallbacksInterface<'cpu> {
     fn exception_callback(&mut self, core: &mut impl Core, ex: Exception) -> cpu::Result<Cycles> {
         let p: Ref<_> = self.peripheral.borrow();
+        let cpu: 
         trace::print_exception("Ex", ex);
         
         let action = match ex {
             Exception::UnimplementedInstruction(ir, pc, 10) => {
-                p.line_1010_emualtion(ir, pc)
+                p.line_1010_emualtion(cpu, ir, pc)
             },
             _ => None
         };
